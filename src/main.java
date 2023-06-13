@@ -1,4 +1,6 @@
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -7,19 +9,14 @@ public class main {
     private static proto proto = new proto();
     private static SerialConnHandler connHandler;
 
-    // replace with your actual file name
-    private static final String FILE_NAME = "blink.bin";
-
+    private static final String FILE_NAME = "blink.bin"; //TODO
 
     public static void main(String[] args) throws Exception {
         connHandler = new SerialConnHandler(promptForPort());
         connHandler.connect();
-        int id = 2;
-        int[] tx = proto.newFrameBuf(proto.getCmdGetUDI(),id);
-        byte[] txarr = intArrayToByteArray(tx);
-        connHandler.getConn().writeBytes(txarr,txarr.length);
-        proto.readFrame(proto.getRspGetUDI(),2, connHandler.getConn());
-        //loadAppFromFile("blink.bin");
+        //getNameVersion();
+        getUDI();
+        loadAppFromFile("blink.bin");
     }
 
     private static String promptForPort() {
@@ -32,11 +29,10 @@ public class main {
         LoadApp(content);
     }
 
+    // Perhaps should be an accessible variable instead.
     private static void LoadApp(byte[] bin) throws Exception {
         int binLen = bin.length;
-        if (binLen > 100 * 1024) {
-            throw new Exception("File too big");
-        }
+        if (binLen > 102400) throw new Exception("File too big");
 
         System.out.println("app size: " + binLen + ", 0x" + Integer.toHexString(binLen) + ", 0b" + Integer.toBinaryString(binLen));
 
@@ -46,7 +42,7 @@ public class main {
         int offset = 0;
         int[] deviceDigest = new int[32];
 
-        for(int nsent; offset < binLen; offset+= nsent){
+        for(int nsent = 0; offset < binLen; offset+= nsent){
             Tuple tup;
             try{
                 if(binLen-offset <= proto.getCmdLoadAppData().getCmdLen().getBytelen()-1){
@@ -78,7 +74,6 @@ public class main {
     }
 
     private static void loadApp(int size, byte[] secretPhrase) throws Exception {
-
         int id = 2;
         int[] tx;
         try{
@@ -104,20 +99,69 @@ public class main {
         }catch(Exception e){
             throw new Exception(e);
         }
-
-
         // Prepare your command to set the size and USS of the app, then write it to conn.getOutputStream()
-        // ...
+    }
+
+    public static byte[] getData(FwCmd command, FwCmd response) throws Exception {
+        int id = 2;
+        int[] tx = proto.newFrameBuf(command, id);
+        byte[] tx_byte = intArrayToByteArray(tx);
+        connHandler.getConn().writeBytes(tx_byte,tx_byte.length);
+        Tuple tup = proto.readFrame(response, 2, connHandler.getConn());
+        return tup.getByteArray();
+    }
+
+    public static void getNameVersion() throws Exception {
+        byte[] data = getData(proto.getCmdGetNameVersion(), proto.getRspGetNameVersion());
+        unpackName(data);
+    }
+
+    public static void getUDI() throws Exception {
+        byte[] data = getData(proto.getCmdGetUDI(), proto.getRspGetUDI());
+        unpackUDI(data);
+    }
+
+    private static void unpackName(byte[] raw) {
+        String name0 = new String(raw, 1, 4);
+        String name1 = new String(raw, 5, 4);
+        long version = ByteBuffer.wrap(raw, 9, 4).order(ByteOrder.LITTLE_ENDIAN).getInt() & 0xffffffffL;
+        System.out.println(Arrays.toString(raw));
+        String concated = name0 + name1 + " " + version;
+        System.out.println(concated);
+    }
+
+    public static void unpackUDI(byte[] byteArray){
+        System.out.println(Arrays.toString(byteArray));
+/*
+        // Print the values
+        System.out.println("Reserved: " + reserved);
+        System.out.println("Vendor ID: " + vendorId);
+        System.out.println("Product ID: " + productId);
+        System.out.println("Product Revision: " + productRevision);
+        System.out.println("Serial Number: " + serialNumber);
+
+*/
+        /*byte[] serialNumberBytes = new byte[4];
+        System.arraycopy(raw, 5, serialNumberBytes, 0, 3);
+        System.out.println("Serial Number: " + byteArrayToHex(serialNumberBytes));
+        *///System.out.println(vendor + " " + vendor + " " + productID + " " + productRevision + " " + serial);
+    }
+
+    private static String byteArrayToHex(byte[] byteArray) {
+        StringBuilder hexBuilder = new StringBuilder();
+        for (byte b : byteArray) {
+            hexBuilder.append(String.format("%02X ", b));
+        }
+        return hexBuilder.toString().trim();
     }
 
     private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
         int id = 2;
         int[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), id);
-        int[] content = byteArrayToIntArray(contentByte);
 
         int[] payload = new int[proto.getCmdLoadAppData().getCmdLen().getBytelen()-2];
-        int copied = Math.min(content.length, payload.length);
-        System.arraycopy(content, 0, payload, 0, copied);
+        int copied = Math.min(contentByte.length, payload.length);
+        System.arraycopy(byteArrayToIntArray(contentByte), 0, payload, 0, copied);
 
         if (copied < payload.length) {
             int[] padding = new int[payload.length - copied];

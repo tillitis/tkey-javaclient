@@ -11,30 +11,20 @@ public enum CmdLen {
     }
 
     public int getBytelen() {
-        switch (this) {
-            case CmdLen1:
-                return 1;
-            case CmdLen4:
-                return 4;
-            case CmdLen32:
-                return 32;
-            case CmdLen128:
-                return 128;
-        }
-        return 0;
+        return switch (this) {
+            case CmdLen1 -> 1;
+            case CmdLen4 -> 4;
+            case CmdLen32 -> 32;
+            case CmdLen128 -> 128;
+        };
     }
 
     public int getByteVal(){
-        switch (this) {
-            case CmdLen1:
-                return 0;
-            case CmdLen4:
-                return 1;
-            case CmdLen32:
-                return 2;
-            case CmdLen128:
-                return 3;
-        }
-        return 0;
+        return switch (this) {
+            case CmdLen1 -> 0;
+            case CmdLen4 -> 1;
+            case CmdLen32 -> 2;
+            case CmdLen128 -> 3;
+        };
     }
 }

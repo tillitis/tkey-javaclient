@@ -1,7 +1,5 @@
 import com.fazecast.jSerialComm.SerialPort;
 
-import java.sql.SQLOutput;
-
 public class proto {
     private final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen.CmdLen1);
     private final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen.CmdLen32);
@@ -36,8 +34,7 @@ public class proto {
         validate(cmd.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
 
         CmdLen cmdlen = cmd.getCmdLen();
-        int[] tx = new int[cmdlen.getBytelen()+1]; //+1
-
+        int[] tx = new int[cmdlen.getBytelen()+1];
         tx[0] = ((id << 5) | (cmd.getEndpoint() << 3) | cmdlen.getByteVal());
         tx[1] = cmd.getCode();
         return tx;
@@ -48,11 +45,11 @@ public class proto {
      */
     protected void dump(String s, int[] d) throws Exception {
         if(d == null || d.length == 0){
-            throw new Exception("no data!");
+            throw new Exception("No data!");
         }
         try{
             FramingHdr framingHdr = parseFrame(d[0]);
-            System.out.println(s + " (frame len: 1+ " + framingHdr.getCmdLen().getBytelen() + " \n");
+            System.out.println(s + " (frame len: " + (1+framingHdr.getCmdLen().getBytelen()));
         }catch(Exception e){
             throw new Exception(s + " parseframe error: " + e);
         }
@@ -90,12 +87,17 @@ public class proto {
             throw new Exception("Couldn't parse framing header. Failed with error: " + e);
         }
         if(hdr.getResponseNotOk()){
-            throw new Exception("Response status not OK"); //TODO: Incomplete error management.
+            throw new Exception("Response status not OK");
+            //TODO: Incomplete error management as compared to golang implementation.
+            // Doesn't extract rest of read, which means key must be reset (plugged out/in).
+        }
+        if(hdr.getCmdLen() != expectedResp.getCmdLen()){
+            throw new Exception("Expected cmdlen " + expectedResp.getCmdLen () + " , got" + hdr.getCmdLen());
         }
         validate(hdr.getEndpoint(), eEndpoint, eEndpoint, "Msg not meant for us, dest: " + hdr.getEndpoint());
         validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
 
-        byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())];
+        byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())]; //should or shouldn't?
 
         try{
             con.readBytes(rx,rx.length-1);
@@ -106,7 +108,6 @@ public class proto {
         int eRespCode = expectedResp.getCode();
 
         validate(rx[0], eRespCode, eRespCode, "Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
-
         return new Tuple(rx,hdr);
     }
 
