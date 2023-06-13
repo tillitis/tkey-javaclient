@@ -1,28 +1,31 @@
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.Scanner;
+import java.nio.*;
+import java.util.*;
 
 public class main {
-
     private static proto proto = new proto();
     private static SerialConnHandler connHandler;
 
-    private static final String FILE_NAME = "blink.bin"; //TODO
+    private static final int ID = 2;
 
     public static void main(String[] args) throws Exception {
-        connHandler = new SerialConnHandler(promptForPort());
-        connHandler.connect();
+        connect();
         //getNameVersion();
         getUDI();
-        loadAppFromFile("blink.bin");
+        //loadAppFromFile("blink.bin");
     }
 
-    private static String promptForPort() {
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("Please enter the COM port (e.g. COM7): ");
-        return scanner.nextLine();
+    public static void connect() throws Exception {
+        connHandler = new SerialConnHandler();
+        connHandler.connect();
+    }
+
+    public static void withSpeed(int speed){
+        connHandler.setSpeed(speed);
+    }
+
+    protected static void setCOMPort(String port) {
+        connHandler.setConn(port);
     }
     public static void loadAppFromFile(String fileName) throws Exception {
         byte[] content = readFile(fileName);
@@ -74,11 +77,9 @@ public class main {
     }
 
     private static void loadApp(int size, byte[] secretPhrase) throws Exception {
-        int id = 2;
         int[] tx;
         try{
-            tx = proto.newFrameBuf(proto.getCmdLoadApp(),id);
-            //tx = proto.newFrameBuf(proto.getCmdGetNameVersion(),id);
+            tx = proto.newFrameBuf(proto.getCmdLoadApp(),ID);
         }catch(Exception e){
             throw new Exception(e);
         }
@@ -103,9 +104,7 @@ public class main {
     }
 
     public static byte[] getData(FwCmd command, FwCmd response) throws Exception {
-        int id = 2;
-        int[] tx = proto.newFrameBuf(command, id);
-        byte[] tx_byte = intArrayToByteArray(tx);
+        byte[] tx_byte = intArrayToByteArray(proto.newFrameBuf(command, ID));
         connHandler.getConn().writeBytes(tx_byte,tx_byte.length);
         Tuple tup = proto.readFrame(response, 2, connHandler.getConn());
         return tup.getByteArray();
@@ -132,32 +131,11 @@ public class main {
 
     public static void unpackUDI(byte[] byteArray){
         System.out.println(Arrays.toString(byteArray));
-/*
-        // Print the values
-        System.out.println("Reserved: " + reserved);
-        System.out.println("Vendor ID: " + vendorId);
-        System.out.println("Product ID: " + productId);
-        System.out.println("Product Revision: " + productRevision);
-        System.out.println("Serial Number: " + serialNumber);
-
-*/
-        /*byte[] serialNumberBytes = new byte[4];
-        System.arraycopy(raw, 5, serialNumberBytes, 0, 3);
-        System.out.println("Serial Number: " + byteArrayToHex(serialNumberBytes));
-        *///System.out.println(vendor + " " + vendor + " " + productID + " " + productRevision + " " + serial);
-    }
-
-    private static String byteArrayToHex(byte[] byteArray) {
-        StringBuilder hexBuilder = new StringBuilder();
-        for (byte b : byteArray) {
-            hexBuilder.append(String.format("%02X ", b));
-        }
-        return hexBuilder.toString().trim();
+        //TODO*
     }
 
     private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
-        int id = 2;
-        int[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), id);
+        int[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), ID);
 
         int[] payload = new int[proto.getCmdLoadAppData().getCmdLen().getBytelen()-2];
         int copied = Math.min(contentByte.length, payload.length);
@@ -179,11 +157,10 @@ public class main {
         FwCmd cmd;
         if(last){
             cmd = proto.getRspLoadAppDataReady();
-        }else{
-            cmd = proto.getRspLoadAppData();
-        }
+        } else cmd = proto.getRspLoadAppData();
+
         try {
-            Tuple tup = proto.readFrame(cmd, id, connHandler.getConn());
+            Tuple tup = proto.readFrame(cmd, ID, connHandler.getConn());
             rx = tup.getIntArray();
         }catch (Exception e){
             throw new Exception(e);
@@ -210,9 +187,8 @@ public class main {
 
     public static int[] byteArrayToIntArray(byte[] byteArray) {
         int[] arr = new int[byteArray.length];
-
         for(int i = 0; i<byteArray.length; i++){
-            arr[i] = (int) byteArray[i];
+            arr[i] = byteArray[i];
         }
         return arr;
     }

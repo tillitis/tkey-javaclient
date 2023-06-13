@@ -8,25 +8,34 @@ public class SerialConnHandler {
 
     private static int speed;
 
-    private static String PORT_NAME;
-
-
     protected SerialConnHandler(String port){
-        this.speed = 62500;
-        this.PORT_NAME = port;
+        speed = 62500;
+        conn = SerialPort.getCommPort(port);
+    }
+
+    protected SerialConnHandler(){
+        speed = 62500;
+        conn = SerialPort.getCommPorts()[0];
     }
 
     protected void connect() throws Exception {
-        conn = SerialPort.getCommPort(PORT_NAME);
         conn.setBaudRate(speed);
         conn.openPort();
         setReadTimeout();
         if (!conn.openPort()) {
-            throw new Exception("Unable to open port " + PORT_NAME);
+            throw new Exception("Unable to open port " + conn.getSystemPortName());
         }
         else{
             System.out.println("Port opened!");
         }
+    }
+
+    protected void setConn(String name){
+        conn = SerialPort.getCommPort(name);
+    }
+
+    public void setSpeed(int speed){
+        conn.setBaudRate(speed);
     }
 
     protected void closePort(){

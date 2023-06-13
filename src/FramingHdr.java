@@ -1,12 +1,8 @@
 public class FramingHdr {
 
-
     private int ID;
-
     private int endpoint;
-
     private CmdLen cmdLen;
-
     private boolean ResponseNotOk;
 
     public FramingHdr(int ID, int endpoint, CmdLen cmdLen){
