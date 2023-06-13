@@ -1,0 +1,3 @@
+# Tkey-jClient
+Currently a messsy and not-very-usable code repo which allows one to send and recieve info from a Tillitis TKey. Code needs to be segmented out into several programs... 
+Serial USB communication is achieved through the use of the external library jSerialComm: https://github.com/Fazecast/jSerialComm.
