@@ -3,14 +3,14 @@ import java.nio.*;
 import java.util.*;
 
 public class main {
-    private static proto proto = new proto();
+    private static final proto proto = new proto();
     private static SerialConnHandler connHandler;
 
     private static final int ID = 2;
 
     public static void main(String[] args) throws Exception {
         connect();
-        //getNameVersion();
+        getNameVersion();
         //getUDI();
         loadAppFromFile("app.bin");
     }
@@ -45,7 +45,7 @@ public class main {
         int offset = 0;
         int[] deviceDigest = new int[32];
 
-        for(int nsent = 0; offset < binLen; offset+= nsent){
+        for(int nsent; offset < binLen; offset+= nsent){
             Tuple tup;
             try{
                 if(binLen-offset <= proto.getCmdLoadAppData().getCmdLen().getBytelen()-1){

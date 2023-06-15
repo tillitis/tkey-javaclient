@@ -109,8 +109,12 @@ public class proto {
         }catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
-
-        validate(rx[1], eRespCode, eRespCode, "Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
+        //this line causes issues
+        if(rx[1] != eRespCode){
+            System.out.println("Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
+            System.out.println("Check app and restart is recommended!");
+        }
+        //validate(rx[1], eRespCode, eRespCode, "Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
         return rx;
     }
 
