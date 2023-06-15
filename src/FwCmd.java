@@ -14,16 +14,8 @@ public class FwCmd{
     public int getCode() {
         return code;
     }
-    public String getName() {
-        return name;
-    }
-
     public byte getEndpoint(){
         return endpoint;
-    }
-
-    public void setEndpoint(byte endpoint){
-        this.endpoint = endpoint;
     }
 
     public CmdLen getCmdLen() {

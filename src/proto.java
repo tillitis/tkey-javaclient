@@ -1,8 +1,4 @@
 import com.fazecast.jSerialComm.SerialPort;
-import  com.fazecast.jSerialComm.SerialPort;
-import java.io.InputStream.*;
-import java.util.Arrays;
-
 public class proto {
     private final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen.CmdLen1);
     private final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen.CmdLen32);
@@ -19,9 +15,7 @@ public class proto {
         if ((b & 0b1000_0000) != 0) {
             throw new Exception("Reserved bit #7 is not zero");
         }
-        if ((b & 0b0000_0100) != 0) {
-            response = true;
-        }
+        response = (b & 0b0000_0100) != 0;
         int id = (b & 0b0110_0000) >> 5;
         int endpoint = (b & 0b0001_1000) >> 3;
         CmdLen cmdLen = CmdLen.values()[b & 0b0000_0011];
@@ -52,7 +46,7 @@ public class proto {
         }
         try{
             FramingHdr framingHdr = parseFrame(d[0]);
-            System.out.println(s + " (frame len: " + (1+framingHdr.getCmdLen().getBytelen()));
+            System.out.println(s + " Frame len: " + (1+framingHdr.getCmdLen().getBytelen()));
         }catch(Exception e){
             throw new Exception(s + " parseframe error: " + e);
         }
@@ -68,7 +62,6 @@ public class proto {
     }
 
     protected Tuple readFrame(FwCmd expectedResp, int expectedID, SerialPort con) throws Exception {
-
         byte eEndpoint = expectedResp.getEndpoint();
         validate(expectedID, 1, 3, "Frame ID needs to be between 1..3");
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
@@ -94,21 +87,22 @@ public class proto {
             //TODO: Incomplete error management as compared to golang implementation.
             // Doesn't extract rest of read, which means key must be reset (plugged out/in).
         }
-        if(hdr.getCmdLen() != expectedResp.getCmdLen()){
-            throw new Exception("Expected cmdlen " + expectedResp.getCmdLen () + " , got" + hdr.getCmdLen());
-        }
+        if(hdr.getCmdLen() != expectedResp.getCmdLen()) throw new Exception("Expected cmdlen " + expectedResp.getCmdLen () + " , got" + hdr.getCmdLen());
+
         validate(hdr.getEndpoint(), eEndpoint, eEndpoint, "Msg not meant for us, dest: " + hdr.getEndpoint());
         validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
 
-        byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())]; //should or shouldn't?
+        byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())];
         rx[0] = rxHdr[0];
+        int eRespCode = expectedResp.getCode();
+
         try{
+            //This is a workaround that isn't in the golang implementation.
             byte[] newData = new byte[con.bytesAvailable()];
-            //workaround: ignore everything before expectedresp code?...
             con.readBytes(newData, newData.length);
-            for (int i = 0; i < newData.length; i++) {
-                if(newData[i] == expectedResp.getCode()){
-                    rx[1] = newData[i];
+            for (byte newDatum : newData) {
+                if (newDatum == eRespCode) {
+                    rx[1] = newDatum;
                     break;
                 }
             }
@@ -116,16 +110,12 @@ public class proto {
             throw new Exception("Read failed, error: " + e);
         }
 
-        int eRespCode = expectedResp.getCode();
-
         validate(rx[1], eRespCode, eRespCode, "Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
         return new Tuple(rx,hdr);
     }
 
     private void validate(int value, int min, int max, String errorMessage) throws Exception {
-        if (value < min || value > max) {
-            throw new Exception(errorMessage);
-        }
+        if (value < min || value > max) throw new Exception(errorMessage);
     }
 
     public FwCmd getCmdGetNameVersion() {

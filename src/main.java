@@ -106,8 +106,7 @@ public class main {
     public static byte[] getData(FwCmd command, FwCmd response) throws Exception {
         byte[] tx_byte = intArrayToByteArray(proto.newFrameBuf(command, ID));
         connHandler.getConn().writeBytes(tx_byte,tx_byte.length);
-        Tuple tup = proto.readFrame(response, 2, connHandler.getConn());
-        return tup.getByteArray();
+        return proto.readFrame(response, 2, connHandler.getConn()).getByteArray();
     }
 
     public static void getNameVersion() throws Exception {
@@ -124,7 +123,6 @@ public class main {
         String name0 = new String(raw, 1, 4);
         String name1 = new String(raw, 5, 4);
         long version = ByteBuffer.wrap(raw, 9, 4).order(ByteOrder.LITTLE_ENDIAN).getInt() & 0xffffffffL;
-        System.out.println(Arrays.toString(raw));
         String concated = name0 + name1 + " " + version;
         System.out.println(concated);
     }
@@ -134,7 +132,6 @@ public class main {
         //TODO*
     }
 
-    private static int Ia = 0;
     private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
         int[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), ID);
 
@@ -146,7 +143,6 @@ public class main {
             int[] padding = new int[payload.length - copied];
             System.arraycopy(padding, 0, payload, copied, padding.length-1);
         }
-        System.out.println(payload.length);
         System.arraycopy(payload, 0, tx, 2, payload.length);
         try{
             proto.dump("LoadAppData tx", tx);
@@ -154,16 +150,16 @@ public class main {
             throw new Exception(e);
         }
 
-        proto.write(intArrayToByteArray(tx),connHandler.getConn());
-        byte[] rx;
+        proto.write(intArrayToByteArray(tx), connHandler.getConn());
+        //connHandler.getConn().
         FwCmd cmd;
+        byte[] rx;
         if(last){
             cmd = proto.getRspLoadAppDataReady();
         } else cmd = proto.getRspLoadAppData();
 
         try {
-            Tuple tup = proto.readFrame(cmd, ID, connHandler.getConn());
-            rx = tup.getByteArray();
+            rx = proto.readFrame(cmd, ID, connHandler.getConn()).getByteArray();
         }catch (Exception e){
             throw new Exception(e);
         }
