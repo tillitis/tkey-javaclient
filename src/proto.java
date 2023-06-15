@@ -46,11 +46,11 @@ public class proto {
         }
         try{
             FramingHdr framingHdr = parseFrame(d[0]);
-            System.out.println(s + " Frame len: " + (1+framingHdr.getCmdLen().getBytelen()));
+            //System.out.println(s + " Frame len: " + (1+framingHdr.getCmdLen().getBytelen()));
         }catch(Exception e){
             throw new Exception(s + " parseframe error: " + e);
         }
-        System.out.println("Hexdump translation to be done...");
+        //System.out.println("Hexdump translation to be done...");
     }
 
     protected void write(byte[] d, SerialPort con) throws Exception {
@@ -95,19 +95,18 @@ public class proto {
         byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())];
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
-
-        try{
-            //This is a workaround that isn't in the golang implementation.
-            byte[] newData = new byte[con.bytesAvailable()];
-            con.readBytes(newData, newData.length);
-            for (byte newDatum : newData) {
-                if (newDatum == eRespCode) {
-                    rx[1] = newDatum;
-                    break;
-                }
+        if(expectedResp.getName().equals("rspGetNameVersion")){
+            try{
+                rx = readForName(con,rx);
+            }catch(Exception e){
+                throw new Exception("Read failed, error: " + e);
             }
-        }catch(Exception e){
-            throw new Exception("Read failed, error: " + e);
+        }else{
+            try{
+                rx = readForApp(con,rx,eRespCode);
+            }catch(Exception e){
+                throw new Exception("Read failed, error: " + e);
+            }
         }
         //this line causes issues
         if(rx[1] != eRespCode){
@@ -117,6 +116,24 @@ public class proto {
         //validate(rx[1], eRespCode, eRespCode, "Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
         return rx;
     }
+
+    private byte[] readForName(SerialPort con, byte[] rx){
+        con.readBytes(rx,rx.length-1);
+        return rx;
+    }
+
+    private byte[] readForApp(SerialPort con, byte[] rx, int eRespCode){
+        byte[] newData = new byte[con.bytesAvailable()];
+        con.readBytes(newData, newData.length);
+        for (byte newDatum : newData) {
+            if (newDatum == eRespCode) {
+                rx[1] = newDatum;
+                break;
+            }
+        }
+        return rx;
+    }
+
 
     private void validate(int value, int min, int max, String errorMessage) throws Exception {
         if (value < min || value > max) throw new Exception(errorMessage);

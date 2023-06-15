@@ -37,7 +37,7 @@ public class main {
         int binLen = bin.length;
         if (binLen > 102400) throw new Exception("File too big");
 
-        System.out.println("app size: " + binLen + ", 0x" + Integer.toHexString(binLen) + ", 0b" + Integer.toBinaryString(binLen));
+        //System.out.println("app size: " + binLen + ", 0x" + Integer.toHexString(binLen) + ", 0b" + Integer.toBinaryString(binLen));
 
         byte[] uss = new byte[0];
         loadApp(binLen, uss);
