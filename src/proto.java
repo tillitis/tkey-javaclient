@@ -1,4 +1,7 @@
 import com.fazecast.jSerialComm.SerialPort;
+import  com.fazecast.jSerialComm.SerialPort;
+import java.io.InputStream.*;
+import java.util.Arrays;
 
 public class proto {
     private final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen.CmdLen1);
@@ -98,16 +101,24 @@ public class proto {
         validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
 
         byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())]; //should or shouldn't?
-
+        rx[0] = rxHdr[0];
         try{
-            con.readBytes(rx,rx.length-1);
+            byte[] newData = new byte[con.bytesAvailable()];
+            //workaround: ignore everything before expectedresp code?...
+            con.readBytes(newData, newData.length);
+            for (int i = 0; i < newData.length; i++) {
+                if(newData[i] == expectedResp.getCode()){
+                    rx[1] = newData[i];
+                    break;
+                }
+            }
         }catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
 
         int eRespCode = expectedResp.getCode();
 
-        validate(rx[0], eRespCode, eRespCode, "Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
+        validate(rx[1], eRespCode, eRespCode, "Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
         return new Tuple(rx,hdr);
     }
 

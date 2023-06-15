@@ -11,8 +11,8 @@ public class main {
     public static void main(String[] args) throws Exception {
         connect();
         //getNameVersion();
-        getUDI();
-        //loadAppFromFile("blink.bin");
+        //getUDI();
+        loadAppFromFile("app.bin");
     }
 
     public static void connect() throws Exception {
@@ -60,7 +60,7 @@ public class main {
                 throw new Exception("loadAppData error: " + e);
             }
             }
-        if(offset>binLen){
+        if(offset > binLen){
             throw new Exception("Transmitted more than expected");
         }
         /*
@@ -134,10 +134,11 @@ public class main {
         //TODO*
     }
 
+    private static int Ia = 0;
     private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
         int[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), ID);
 
-        int[] payload = new int[proto.getCmdLoadAppData().getCmdLen().getBytelen()-2];
+        int[] payload = new int[proto.getCmdLoadAppData().getCmdLen().getBytelen()-1];
         int copied = Math.min(contentByte.length, payload.length);
         System.arraycopy(byteArrayToIntArray(contentByte), 0, payload, 0, copied);
 
@@ -147,13 +148,14 @@ public class main {
         }
         System.out.println(payload.length);
         System.arraycopy(payload, 0, tx, 2, payload.length);
-
         try{
             proto.dump("LoadAppData tx", tx);
         }catch (Exception e){
             throw new Exception(e);
         }
-        int[] rx;
+
+        proto.write(intArrayToByteArray(tx),connHandler.getConn());
+        byte[] rx;
         FwCmd cmd;
         if(last){
             cmd = proto.getRspLoadAppDataReady();
@@ -161,7 +163,7 @@ public class main {
 
         try {
             Tuple tup = proto.readFrame(cmd, ID, connHandler.getConn());
-            rx = tup.getIntArray();
+            rx = tup.getByteArray();
         }catch (Exception e){
             throw new Exception(e);
         }
