@@ -106,7 +106,7 @@ public class main {
     public static byte[] getData(FwCmd command, FwCmd response) throws Exception {
         byte[] tx_byte = intArrayToByteArray(proto.newFrameBuf(command, ID));
         connHandler.getConn().writeBytes(tx_byte,tx_byte.length);
-        return proto.readFrame(response, 2, connHandler.getConn()).getByteArray();
+        return proto.readFrame(response, 2, connHandler.getConn());
     }
 
     public static void getNameVersion() throws Exception {
@@ -159,7 +159,7 @@ public class main {
         } else cmd = proto.getRspLoadAppData();
 
         try {
-            rx = proto.readFrame(cmd, ID, connHandler.getConn()).getByteArray();
+            rx = proto.readFrame(cmd, ID, connHandler.getConn());
         }catch (Exception e){
             throw new Exception(e);
         }

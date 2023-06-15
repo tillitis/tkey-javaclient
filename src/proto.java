@@ -61,7 +61,7 @@ public class proto {
         }
     }
 
-    protected Tuple readFrame(FwCmd expectedResp, int expectedID, SerialPort con) throws Exception {
+    protected byte[] readFrame(FwCmd expectedResp, int expectedID, SerialPort con) throws Exception {
         byte eEndpoint = expectedResp.getEndpoint();
         validate(expectedID, 1, 3, "Frame ID needs to be between 1..3");
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
@@ -111,7 +111,7 @@ public class proto {
         }
 
         validate(rx[1], eRespCode, eRespCode, "Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
-        return new Tuple(rx,hdr);
+        return rx;
     }
 
     private void validate(int value, int min, int max, String errorMessage) throws Exception {
