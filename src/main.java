@@ -1,45 +1,38 @@
+import org.bouncycastle.jcajce.provider.digest.Blake2s;
+import org.bouncycastle.crypto.digests.Blake2sDigest;
+
 import java.io.*;
 import java.nio.*;
 import java.util.*;
 
+import static org.bouncycastle.jcajce.provider.digest.Blake2s.*;
+
 public class main {
     private static final proto proto = new proto();
     private static SerialConnHandler connHandler;
-
     private static final int ID = 2;
-
     public static void main(String[] args) throws Exception {
         connect();
         getNameVersion();
         //getUDI();
         loadAppFromFile("app.bin");
     }
-
-    public static void connect() throws Exception {
-        connHandler = new SerialConnHandler();
-        connHandler.connect();
-    }
-
-    public static void withSpeed(int speed){
-        connHandler.setSpeed(speed);
-    }
-
-    protected static void setCOMPort(String port) {
-        connHandler.setConn(port);
-    }
     public static void loadAppFromFile(String fileName) throws Exception {
         byte[] content = readFile(fileName);
         LoadApp(content);
     }
 
-    // Perhaps should be an accessible variable instead.
     private static void LoadApp(byte[] bin) throws Exception {
+        LoadApp(bin,new byte[0]);
+    }
+
+    // Perhaps should be an accessible variable instead.
+    private static void LoadApp(byte[] bin, byte[] uss) throws Exception {
         int binLen = bin.length;
         if (binLen > 102400) throw new Exception("File too big");
 
         //System.out.println("app size: " + binLen + ", 0x" + Integer.toHexString(binLen) + ", 0b" + Integer.toBinaryString(binLen));
 
-        byte[] uss = new byte[0];
         loadApp(binLen, uss);
 
         int offset = 0;
@@ -49,7 +42,7 @@ public class main {
             Tuple tup;
             try{
                 if(binLen-offset <= proto.getCmdLoadAppData().getCmdLen().getBytelen()-1){
-                    tup = loadAppData( (Arrays.copyOfRange(bin, offset, bin.length)),true);
+                    tup = loadAppData((Arrays.copyOfRange(bin, offset, bin.length)),true);
                     deviceDigest = tup.getIntArray();
                     nsent = tup.getIntValue();
                 } else {
@@ -59,35 +52,34 @@ public class main {
             }catch(Exception e){
                 throw new Exception("loadAppData error: " + e);
             }
-            }
-        if(offset > binLen){
-            throw new Exception("Transmitted more than expected");
         }
-        /*
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] digestFromHost = digest.digest(bin);
+        if(offset > binLen) throw new Exception("Transmitted more than expected");
 
-        System.out.println("Digest from host: " + bytesToHex(digestFromHost));
-        //System.out.println("Digest from device: " + bytesToHex(Arrays.stream(deviceDigest).map()));
-
-        if (!Arrays.equals(deviceDigest, digestFromHost)) {
+        //byte[] digest = new byte[32];
+        //Blake2s256 blake2s = new Blake2s256();
+        //digest = blake2s.digest(bin);
+        /*Blake2s blake2s = new Blake2s(digest.length);
+        digest = blake2s.digest(bin);
+        if (!Arrays.equals(intArrayToByteArray(deviceDigest), digest)) {
+            System.out.println(Arrays.toString(deviceDigest));
+            System.out.println(Arrays.toString(digest));
             throw new Exception("Different digests");
         }
         System.out.println("Same digests!");*/
     }
 
     private static void loadApp(int size, byte[] secretPhrase) throws Exception {
-        int[] tx;
-        try{
-            tx = proto.newFrameBuf(proto.getCmdLoadApp(),ID);
-        }catch(Exception e){
-            throw new Exception(e);
-        }
+        int[] tx = proto.newFrameBuf(proto.getCmdLoadApp(),ID);
         tx[2] = size;
         tx[3] = size >> 8;
         tx[4] = size >> 16;
         tx[5] = size >> 24;
         tx[6] = 0;
+        /*
+        if(secretPhrase.length == 0){
+        }else{
+            byte[] uss = null;
+        }*/
         // TODO: Implement blake2s and USS
         try{
             proto.dump("LoadApp tx", tx);
@@ -100,36 +92,11 @@ public class main {
         }catch(Exception e){
             throw new Exception(e);
         }
-        // Prepare your command to set the size and USS of the app, then write it to conn.getOutputStream()
-    }
-
-    public static byte[] getData(FwCmd command, FwCmd response) throws Exception {
-        byte[] tx_byte = intArrayToByteArray(proto.newFrameBuf(command, ID));
-        connHandler.getConn().writeBytes(tx_byte,tx_byte.length);
-        return proto.readFrame(response, 2, connHandler.getConn());
-    }
-
-    public static void getNameVersion() throws Exception {
-        byte[] data = getData(proto.getCmdGetNameVersion(), proto.getRspGetNameVersion());
-        unpackName(data);
-    }
-
-    public static void getUDI() throws Exception {
-        byte[] data = getData(proto.getCmdGetUDI(), proto.getRspGetUDI());
-        unpackUDI(data);
-    }
-
-    private static void unpackName(byte[] raw) {
-        String name0 = new String(raw, 1, 4);
-        String name1 = new String(raw, 5, 4);
-        long version = ByteBuffer.wrap(raw, 9, 4).order(ByteOrder.LITTLE_ENDIAN).getInt() & 0xffffffffL;
-        String concated = name0 + name1 + " " + version;
-        System.out.println(concated);
-    }
-
-    public static void unpackUDI(byte[] byteArray){
-        System.out.println(Arrays.toString(byteArray));
-        //TODO*
+        /*byte[] rx = proto.readFrame(proto.getRspLoadApp(),ID,connHandler.getConn());
+        if(rx[2] != 0x00){
+            System.out.printf("dat new err");
+        }*/ // Should be here, but causes issues.
+        // Prep are your command to set the size and USS of the app, then write it to conn.getOutputStream()
     }
 
     private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
@@ -141,7 +108,7 @@ public class main {
 
         if (copied < payload.length) {
             int[] padding = new int[payload.length - copied];
-            System.arraycopy(padding, 0, payload, copied, padding.length-1);
+            System.arraycopy(padding, 0, payload, copied, padding.length-1); //this line does nothing.
         }
         System.arraycopy(payload, 0, tx, 2, payload.length);
         try{
@@ -151,13 +118,13 @@ public class main {
         }
 
         proto.write(intArrayToByteArray(tx), connHandler.getConn());
-        //connHandler.getConn().
+
         FwCmd cmd;
-        byte[] rx;
         if(last){
             cmd = proto.getRspLoadAppDataReady();
         } else cmd = proto.getRspLoadAppData();
 
+        byte[] rx;
         try {
             rx = proto.readFrame(cmd, ID, connHandler.getConn());
         }catch (Exception e){
@@ -165,10 +132,39 @@ public class main {
         }
         if(last){
             int[] digest = new int[32];
-            System.arraycopy(rx, 3, digest,0 ,32);
+            System.arraycopy(byteArrayToIntArray(rx), 3, digest,0 ,32);
             return new Tuple(digest,copied);
         }
         return new Tuple(new int[32], copied);
+    }
+
+    public static void getNameVersion() throws Exception {
+        byte[] data = getData(proto.getCmdGetNameVersion(), proto.getRspGetNameVersion());
+        unpackName(data);
+    }
+
+    private static void unpackName(byte[] raw) {
+        String name0 = new String(raw, 1, 4);
+        String name1 = new String(raw, 5, 4);
+        long version = ByteBuffer.wrap(raw, 9, 4).order(ByteOrder.LITTLE_ENDIAN).getInt() & 0xffffffffL;
+        String concated = name0 + name1 + " " + version;
+        System.out.println("TKey Device name and version: " + concated);
+    }
+
+    public static void getUDI() throws Exception {
+        byte[] data = getData(proto.getCmdGetUDI(), proto.getRspGetUDI());
+        unpackUDI(data);
+    }
+
+    public static void unpackUDI(byte[] byteArray){
+        System.out.println(Arrays.toString(byteArray));
+        //TODO*
+    }
+
+    public static byte[] getData(FwCmd command, FwCmd response) throws Exception {
+        byte[] tx_byte = intArrayToByteArray(proto.newFrameBuf(command, ID));
+        connHandler.getConn().writeBytes(tx_byte,tx_byte.length);
+        return proto.readFrame(response, 2, connHandler.getConn());
     }
 
     private static byte[] readFile(String fileName) throws IOException {
@@ -190,4 +186,23 @@ public class main {
         }
         return arr;
     }
+
+    public static void connect() throws Exception {
+        connHandler = new SerialConnHandler();
+        connHandler.connect();
+    }
+
+    public static void close(){
+        connHandler.closePort();
+    }
+
+    public static void withSpeed(int speed){
+        connHandler.setSpeed(speed);
+    }
+
+    protected static void setCOMPort(String port) {
+        connHandler.setConn(port);
+    }
+
+
 }

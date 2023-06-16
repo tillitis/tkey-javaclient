@@ -1,4 +1,5 @@
 import com.fazecast.jSerialComm.SerialPort;
+
 public class proto {
     private final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen.CmdLen1);
     private final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen.CmdLen32);
@@ -11,11 +12,10 @@ public class proto {
     private final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen.CmdLen32);
 
     protected FramingHdr parseFrame(int b) throws Exception {
-        boolean response = false;
         if ((b & 0b1000_0000) != 0) {
             throw new Exception("Reserved bit #7 is not zero");
         }
-        response = (b & 0b0000_0100) != 0;
+        boolean response = (b & 0b0000_0100) != 0;
         int id = (b & 0b0110_0000) >> 5;
         int endpoint = (b & 0b0001_1000) >> 3;
         CmdLen cmdLen = CmdLen.values()[b & 0b0000_0011];
@@ -26,7 +26,7 @@ public class proto {
     }
 
     protected int[] newFrameBuf(FwCmd cmd, int id) throws Exception{
-        validate(id, 1, 3, "Frame ID needs to be between 1..3");
+        validate(id, 0, 3, "Frame ID needs to be between 1..3");
         validate(cmd.getEndpoint(), 0, 3, "Endpoint must be 0..3");
         validate(cmd.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
 
@@ -44,12 +44,12 @@ public class proto {
         if(d == null || d.length == 0){
             throw new Exception("No data!");
         }
+        /* Code not really needed...
         try{
             FramingHdr framingHdr = parseFrame(d[0]);
-            //System.out.println(s + " Frame len: " + (1+framingHdr.getCmdLen().getBytelen()));
         }catch(Exception e){
             throw new Exception(s + " parseframe error: " + e);
-        }
+        }*/
         //System.out.println("Hexdump translation to be done...");
     }
 
@@ -63,7 +63,7 @@ public class proto {
 
     protected byte[] readFrame(FwCmd expectedResp, int expectedID, SerialPort con) throws Exception {
         byte eEndpoint = expectedResp.getEndpoint();
-        validate(expectedID, 1, 3, "Frame ID needs to be between 1..3");
+        validate(expectedID, 0, 3, "Frame ID needs to be between 1..3");
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
         validate(expectedResp.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
 
@@ -78,14 +78,15 @@ public class proto {
 
         FramingHdr hdr;
         try{
+            Thread.sleep(1); //This is required for the TKey to have time to read the next set of byte.
             hdr = parseFrame(rxHdr[0]);
         }catch(Exception e){
             throw new Exception("Couldn't parse framing header. Failed with error: " + e);
         }
         if(hdr.getResponseNotOk()){
+            byte[] rest = new byte[hdr.getCmdLen().getBytelen()];
+            con.readBytes(rest,con.bytesAvailable());
             throw new Exception("Response status not OK");
-            //TODO: Incomplete error management as compared to golang implementation.
-            // Doesn't extract rest of read, which means key must be reset (plugged out/in).
         }
         if(hdr.getCmdLen() != expectedResp.getCmdLen()) throw new Exception("Expected cmdlen " + expectedResp.getCmdLen () + " , got" + hdr.getCmdLen());
 
@@ -95,30 +96,25 @@ public class proto {
         byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())];
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
-        if(expectedResp.getName().equals("rspGetNameVersion")){
-            try{
-                rx = readForName(con,rx);
-            }catch(Exception e){
-                throw new Exception("Read failed, error: " + e);
-            }
-        }else{
-            try{
-                rx = readForApp(con,rx,eRespCode);
-            }catch(Exception e){
-                throw new Exception("Read failed, error: " + e);
-            }
+        try{
+            if(expectedResp.getName().equals("rspGetNameVersion")) readForName(con, rx);
+
+            else readForApp(con, rx, eRespCode);
+
+        } catch(Exception e){
+            throw new Exception("Read failed, error: " + e);
         }
-        //this line causes issues
-        if(rx[1] != eRespCode){
-            System.out.println("Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
-            System.out.println("Check app and restart is recommended!");
+        //this line causes issues. throws issue every first run
+        if(rx[1] != eRespCode){ //rx[0] ?
+            System.out.print("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
+            System.out.println(". Check app and restart is recommended!");
         }
         //validate(rx[1], eRespCode, eRespCode, "Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
         return rx;
     }
 
     private byte[] readForName(SerialPort con, byte[] rx){
-        con.readBytes(rx,rx.length-1);
+        con.readBytes(rx,rx.length);
         return rx;
     }
 

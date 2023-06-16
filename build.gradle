@@ -15,6 +15,8 @@ sourceSets {
         }
     }
 }
+
 dependencies {
     implementation files('jSerialComm-2.9.3.jar') // replace with your version and jar file path
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.74'
 }
