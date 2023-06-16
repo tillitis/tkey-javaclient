@@ -16,3 +16,5 @@ b. Implement a couple more methods which are present in the original tkey-client
 c. Implement UDI get method(s).
 
 d. Documentation.
+
+e. Implement the Blake2s parts of the code.
