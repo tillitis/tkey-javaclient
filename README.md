@@ -7,7 +7,7 @@ Note: Due to Gradle lacking support for JDK20, JDK19 (or lower) must be used.
 
 To send apps to the TKey: Build the device app (see https://github.com/tillitis/tillitis-key1-apps), and place the .bin or .S file the root of this program's directory. Specify the loadAppFromFile string in Main, connect a TKey, and then run the program.
 
-TODO: 
+To Do: 
 
 a. Code Cleanup. Particularly in regards to duplicate code. 
 
