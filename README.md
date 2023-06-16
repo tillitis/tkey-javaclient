@@ -9,12 +9,10 @@ To send apps to the TKey: Build the device app (see https://github.com/tillitis/
 
 To Do: 
 
-a. Code Cleanup. Particularly in regards to duplicate code. 
+a. Minor code cleanup. Particularly in regards to unnecessary code. 
 
-b. Implement a couple more methods which are present in the original tkey-client library.
+b. Implement UDI get method(s).
 
-c. Implement UDI get method(s).
+c. Documentation.
 
-d. Documentation.
-
-e. Implement the Blake2s parts of the code.
+d. Implement the Blake2s parts of the code.
