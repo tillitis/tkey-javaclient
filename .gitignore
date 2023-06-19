@@ -1,6 +1,6 @@
 ### IntelliJ IDEA ###
 out/
-!**/src/main/**/out/
+!**/src/com.knek.TkeyClient/**/out/
 !**/src/test/**/out/
 
 ### Eclipse ###
@@ -12,7 +12,7 @@ out/
 .springBeans
 .sts4-cache
 bin/
-!**/src/main/**/bin/
+!**/src/com.knek.TkeyClient/**/bin/
 !**/src/test/**/bin/
 
 ### NetBeans ###
@@ -30,4 +30,4 @@ bin/
 # Project exclude paths
 /.gradle/
 /build/
-/build/classes/java/main/
+/build/classes/java/com.knek.TkeyClient/

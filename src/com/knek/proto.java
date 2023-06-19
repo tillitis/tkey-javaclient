@@ -1,3 +1,5 @@
+package com.knek;
+
 import com.fazecast.jSerialComm.SerialPort;
 
 public class proto {
@@ -46,7 +48,7 @@ public class proto {
         }
         /* Code not really needed...
         try{
-            FramingHdr framingHdr = parseFrame(d[0]);
+            com.knek.FramingHdr framingHdr = parseFrame(d[0]);
         }catch(Exception e){
             throw new Exception(s + " parseframe error: " + e);
         }*/

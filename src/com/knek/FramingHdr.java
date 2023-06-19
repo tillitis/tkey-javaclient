@@ -1,3 +1,5 @@
+package com.knek;
+
 public class FramingHdr {
 
     private int ID;

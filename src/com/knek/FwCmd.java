@@ -1,3 +1,5 @@
+package com.knek;
+
 public class FwCmd{
     private int code;
     private String name;

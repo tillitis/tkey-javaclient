@@ -1,3 +1,5 @@
+package com.knek;
+
 public enum CmdLen {
     CmdLen1(0),
     CmdLen4(1),

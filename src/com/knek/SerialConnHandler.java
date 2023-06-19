@@ -1,4 +1,8 @@
+package com.knek;
+
 import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortDataListener;
+import com.fazecast.jSerialComm.SerialPortEvent;
 
 import static com.fazecast.jSerialComm.SerialPort.*;
 
@@ -7,6 +11,8 @@ public class SerialConnHandler {
     private static SerialPort conn;
 
     private static int speed;
+
+    private static Boolean hasCon;
 
     protected SerialConnHandler(String port){
         speed = 62500;
@@ -18,6 +24,17 @@ public class SerialConnHandler {
         conn = SerialPort.getCommPorts()[0];
     }
 
+    public boolean getHasCon(){
+        return hasCon;
+    }
+
+    void reconnect() throws Exception {
+        conn = SerialPort.getCommPorts()[0];
+        conn.openPort();
+        portListener();
+        hasCon = true;
+    }
+
     protected void connect() throws Exception {
         conn.setBaudRate(speed);
         conn.openPort();
@@ -27,7 +44,24 @@ public class SerialConnHandler {
         }
         else{
             System.out.println("Port opened!");
+            portListener();
+            hasCon = true;
         }
+    }
+
+    private void portListener(){
+        conn.addDataListener(new SerialPortDataListener() {
+            @Override
+            public int getListeningEvents() {
+                return SerialPort.LISTENING_EVENT_PORT_DISCONNECTED;
+            }
+            @Override
+            public void serialEvent(SerialPortEvent event) {
+                if (event.getEventType() == SerialPort.LISTENING_EVENT_PORT_DISCONNECTED){
+                    hasCon = false;
+                }
+            }
+        });
     }
 
     protected void setConn(String name){

@@ -1,26 +1,27 @@
-import org.bouncycastle.jcajce.provider.digest.Blake2s;
-import org.bouncycastle.crypto.digests.Blake2sDigest;
+package com.knek;
 
 import java.io.*;
 import java.nio.*;
 import java.util.*;
 
-import static org.bouncycastle.jcajce.provider.digest.Blake2s.*;
-
-public class main {
+public class TkeyClient {
     private static final proto proto = new proto();
     private static SerialConnHandler connHandler;
     private static final int ID = 2;
     public static void main(String[] args) throws Exception {
         connect();
         getNameVersion();
-        //getUDI();
         loadAppFromFile("app.bin");
     }
     public static void loadAppFromFile(String fileName) throws Exception {
         byte[] content = readFile(fileName);
         LoadApp(content);
     }
+
+    public static boolean getHasCon(){
+        return connHandler.getHasCon();
+    }
+
 
     private static void LoadApp(byte[] bin) throws Exception {
         LoadApp(bin,new byte[0]);
@@ -92,7 +93,7 @@ public class main {
         }catch(Exception e){
             throw new Exception(e);
         }
-        /*byte[] rx = proto.readFrame(proto.getRspLoadApp(),ID,connHandler.getConn());
+        /*byte[] rx = com.knek.proto.readFrame(com.knek.proto.getRspLoadApp(),ID,connHandler.getConn());
         if(rx[2] != 0x00){
             System.out.printf("dat new err");
         }*/ // Should be here, but causes issues.
@@ -138,17 +139,18 @@ public class main {
         return new Tuple(new int[32], copied);
     }
 
-    public static void getNameVersion() throws Exception {
+    public static String getNameVersion() throws Exception {
         byte[] data = getData(proto.getCmdGetNameVersion(), proto.getRspGetNameVersion());
-        unpackName(data);
+        return unpackName(data);
     }
 
-    private static void unpackName(byte[] raw) {
+    private static String unpackName(byte[] raw) {
         String name0 = new String(raw, 1, 4);
         String name1 = new String(raw, 5, 4);
         long version = ByteBuffer.wrap(raw, 9, 4).order(ByteOrder.LITTLE_ENDIAN).getInt() & 0xffffffffL;
         String concated = name0 + name1 + " " + version;
         System.out.println("TKey Device name and version: " + concated);
+        return concated;
     }
 
     public static void getUDI() throws Exception {
@@ -190,6 +192,10 @@ public class main {
     public static void connect() throws Exception {
         connHandler = new SerialConnHandler();
         connHandler.connect();
+    }
+
+    public static void reconnect() throws Exception {
+        connHandler.reconnect();
     }
 
     public static void close(){
