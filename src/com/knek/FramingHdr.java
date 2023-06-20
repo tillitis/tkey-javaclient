@@ -2,9 +2,9 @@ package com.knek;
 
 public class FramingHdr {
 
-    private int ID;
-    private int endpoint;
-    private CmdLen cmdLen;
+    private final int ID;
+    private final int endpoint;
+    private final CmdLen cmdLen;
     private boolean ResponseNotOk;
 
     public FramingHdr(int ID, int endpoint, CmdLen cmdLen){

@@ -1,10 +1,10 @@
 package com.knek;
 
 public class FwCmd{
-    private int code;
-    private String name;
-    private CmdLen cmdLen;
-    private byte endpoint;
+    private final int code;
+    private final String name;
+    private final CmdLen cmdLen;
+    private final byte endpoint;
 
     public FwCmd(int code, String name, CmdLen cmdLen) {
         this.code = code;

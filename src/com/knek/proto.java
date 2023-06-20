@@ -13,7 +13,7 @@ public class proto {
     private final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen.CmdLen1);
     private final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen.CmdLen32);
 
-    protected FramingHdr parseFrame(int b) throws Exception {
+    private FramingHdr parseFrame(int b) throws Exception {
         if ((b & 0b1000_0000) != 0) {
             throw new Exception("Reserved bit #7 is not zero");
         }
@@ -28,11 +28,12 @@ public class proto {
     }
 
     protected int[] newFrameBuf(FwCmd cmd, int id) throws Exception{
+        CmdLen cmdlen = cmd.getCmdLen();
+
         validate(id, 0, 3, "Frame ID needs to be between 1..3");
         validate(cmd.getEndpoint(), 0, 3, "Endpoint must be 0..3");
-        validate(cmd.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
+        validate(cmdlen.getByteVal(), 0, 3, "cmdLen must be 0..3");
 
-        CmdLen cmdlen = cmd.getCmdLen();
         int[] tx = new int[cmdlen.getBytelen()+1];
         tx[0] = ((id << 5) | (cmd.getEndpoint() << 3) | cmdlen.getByteVal());
         tx[1] = cmd.getCode();
@@ -46,9 +47,9 @@ public class proto {
         if(d == null || d.length == 0){
             throw new Exception("No data!");
         }
-        /* Code not really needed...
+        /*
         try{
-            com.knek.FramingHdr framingHdr = parseFrame(d[0]);
+            FramingHdr framingHdr = parseFrame(d[0]);
         }catch(Exception e){
             throw new Exception(s + " parseframe error: " + e);
         }*/
@@ -80,7 +81,7 @@ public class proto {
 
         FramingHdr hdr;
         try{
-            Thread.sleep(1); //This is required for the TKey to have time to read the next set of byte.
+            Thread.sleep(1);
             hdr = parseFrame(rxHdr[0]);
         }catch(Exception e){
             throw new Exception("Couldn't parse framing header. Failed with error: " + e);
@@ -99,24 +100,17 @@ public class proto {
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
         try{
-            if(expectedResp.getName().equals("rspGetNameVersion") || expectedResp.getName().equals("rspGetUDI") ) readForName(con, rx);
+            if(expectedResp.getName().equals("rspGetNameVersion") || expectedResp.getName().equals("rspGetUDI") ) con.readBytes(rx,rx.length);
 
             else readForApp(con, rx, eRespCode);
 
         } catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
-        //this line causes issues. throws issue every first run
-        if(rx[1] != eRespCode){ //rx[0] ?
-            System.out.print("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
-            System.out.println(". Check app and restart is recommended!");
+        if(rx[1] != eRespCode){
+            System.out.println("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
+            System.out.println("If this happens more than once during app loading, check device app and restart is recommended!");
         }
-        //validate(rx[1], eRespCode, eRespCode, "Expected cmd code 0x" + eRespCode + " , got 0x" + rx[1]);
-        return rx;
-    }
-
-    private byte[] readForName(SerialPort con, byte[] rx){
-        con.readBytes(rx,rx.length);
         return rx;
     }
 
@@ -131,7 +125,6 @@ public class proto {
         }
         return rx;
     }
-
 
     private void validate(int value, int min, int max, String errorMessage) throws Exception {
         if (value < min || value > max) throw new Exception(errorMessage);

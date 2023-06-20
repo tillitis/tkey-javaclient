@@ -1,8 +1,8 @@
 package com.knek;
 
 public class Tuple {
-    private int intValue;
-    private int[] intArray;
+    private final int intValue;
+    private final int[] intArray;
 
     public Tuple(int[] byteArray, int intValue) {
         this.intArray = byteArray;

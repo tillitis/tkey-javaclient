@@ -16,8 +16,18 @@ public class TkeyClient {
     public static void main(String[] args) throws Exception {
         connect();
         getNameVersion();
-        getUDI();
-        //loadAppFromFile("app.bin");
+
+        UDI udi = getUDI();
+        System.out.print(udi.productID());
+
+        clearIOFull(); //Required only if app is loaded after getting UDI.
+
+        loadAppFromFile("app.bin");
+    }
+
+    public static void clearIOFull() throws InterruptedException {
+        Thread.sleep(200);
+        connHandler.flush();
     }
     public static void loadAppFromFile(String fileName) throws Exception {
         byte[] content = readFile(fileName);
@@ -28,17 +38,13 @@ public class TkeyClient {
         return connHandler.getHasCon();
     }
 
-
     private static void LoadApp(byte[] bin) throws Exception {
         LoadApp(bin,new byte[0]);
     }
 
-    // Perhaps should be an accessible variable instead.
     private static void LoadApp(byte[] bin, byte[] uss) throws Exception {
         int binLen = bin.length;
         if (binLen > 102400) throw new Exception("File too big");
-
-        //System.out.println("app size: " + binLen + ", 0x" + Integer.toHexString(binLen) + ", 0b" + Integer.toBinaryString(binLen));
 
         loadApp(binLen, uss);
 
@@ -99,11 +105,6 @@ public class TkeyClient {
         }catch(Exception e){
             throw new Exception(e);
         }
-        /*byte[] rx = com.knek.proto.readFrame(com.knek.proto.getRspLoadApp(),ID,connHandler.getConn());
-        if(rx[2] != 0x00){
-            System.out.printf("dat new err");
-        }*/ // Should be here, but causes issues.
-        // Prep are your command to set the size and USS of the app, then write it to conn.getOutputStream()
     }
 
     private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
@@ -205,6 +206,4 @@ public class TkeyClient {
     public static void setCOMPort(String port) {
         connHandler.setConn(port);
     }
-
-
 }

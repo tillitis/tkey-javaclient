@@ -1,32 +1,24 @@
 package com.knek;
 
-public enum CmdLen {
-    CmdLen1(0),
-    CmdLen4(1),
-    CmdLen32(2),
-    CmdLen128(3);
+enum CmdLen {
+    CmdLen1(1, 0),
+    CmdLen4(4, 1),
+    CmdLen32(32, 2),
+    CmdLen128(128, 3);
 
-    private final int value;
+    private final int byteLen;
+    private final int byteVal;
 
-    CmdLen(int value) {
-        this.value = value;
+    CmdLen(int byteLen, int byteVal) {
+        this.byteLen = byteLen;
+        this.byteVal = byteVal;
     }
 
-    public int getBytelen() {
-        return switch (this) {
-            case CmdLen1 -> 1;
-            case CmdLen4 -> 4;
-            case CmdLen32 -> 32;
-            case CmdLen128 -> 128;
-        };
+    int getBytelen() {
+        return byteLen;
     }
 
-    public int getByteVal(){
-        return switch (this) {
-            case CmdLen1 -> 0;
-            case CmdLen4 -> 1;
-            case CmdLen32 -> 2;
-            case CmdLen128 -> 3;
-        };
+    int getByteVal() {
+        return byteVal;
     }
 }

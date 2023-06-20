@@ -49,6 +49,12 @@ public class SerialConnHandler {
         }
     }
 
+    void flush(){
+        conn.clearRTS();
+        conn.clearDTR();
+        conn.flushIOBuffers();
+    }
+
     private void portListener(){
         conn.addDataListener(new SerialPortDataListener() {
             @Override
