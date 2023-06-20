@@ -1,12 +1,12 @@
 # Tkey-jClient
-This is currently a somewhat messsy code repo which allows one to send apps, and recieve info, to/from a [Tillitis TKey](tillitis.se). In effect, this is a Java version of the tkey-client library ([see here](https://github.com/tillitis/tkeyclient)). 
+This is currently a somewhat messsy code repo which allows one to send apps, and recieve info, to/from a [Tillitis TKey](tillitis.se). In effect, this is a Java version of the [tkey-client Golang package](https://github.com/tillitis/tkeyclient). 
 
 ## Usage
 There are two ways to send apps and communicate with a TKey using this library/project:
 
 ### 1: Using this library as a stand-alone program
 
-1. Build the TKey device app, [see here](https://github.com/tillitis/tillitis-key1-apps).
+1. Build the TKey device app, [see here for more information](https://github.com/tillitis/tillitis-key1-apps).
 2. Place the .bin file in the root of this program's directory (not required, but makes life easier).
 3. Specify the filepath as the input in the method call loadAppFromFile in main()
 4. Connect a TKey
