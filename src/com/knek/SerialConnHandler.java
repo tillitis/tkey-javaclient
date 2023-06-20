@@ -74,6 +74,8 @@ public class SerialConnHandler {
 
     protected void closePort(){
         conn.closePort();
+        conn.removeDataListener();
+        conn = null;
     }
 
     public SerialPort getConn(){
