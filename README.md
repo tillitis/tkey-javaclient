@@ -1,5 +1,5 @@
 # Tkey-jClient
-This is currently a somewhat messsy code repo which allows one to send apps, and recieve info, to/from a Tillitis TKey (tillitis.se). In effect, this is a Java version of the tkey-client library ([see here](https://github.com/tillitis/tkeyclient)). 
+This is currently a somewhat messsy code repo which allows one to send apps, and recieve info, to/from a [Tillitis TKey](tillitis.se). In effect, this is a Java version of the tkey-client library ([see here](https://github.com/tillitis/tkeyclient)). 
 
 ## Usage
 There are two ways to send apps and communicate with a TKey using this library/project:
