@@ -1,8 +1,13 @@
 package com.knek;
 
+import jdk.jfr.Unsigned;
+
 import java.io.*;
 import java.nio.*;
 import java.util.*;
+
+import static com.knek.ArrayConverter.*;
+
 
 public class TkeyClient {
     private static final proto proto = new proto();
@@ -11,7 +16,8 @@ public class TkeyClient {
     public static void main(String[] args) throws Exception {
         connect();
         getNameVersion();
-        loadAppFromFile("app.bin");
+        getUDI();
+        //loadAppFromFile("app.bin");
     }
     public static void loadAppFromFile(String fileName) throws Exception {
         byte[] content = readFile(fileName);
@@ -153,17 +159,23 @@ public class TkeyClient {
         return concated;
     }
 
-    public static void getUDI() throws Exception {
+    public static UDI getUDI() throws Exception {
         byte[] data = getData(proto.getCmdGetUDI(), proto.getRspGetUDI());
-        unpackUDI(data);
+        return unpackUDI(data);
     }
 
-    public static void unpackUDI(byte[] byteArray){
-        System.out.println(Arrays.toString(byteArray));
-        //TODO*
+    private static UDI unpackUDI(byte[] byteArray){
+        short[] udi = Arrays.copyOfRange(bytesToUnsignedBytes(byteArray),2,10);
+        int vpr = (udi[3] << 24) | ((udi[2] & 0xFF) << 16) | ((udi[1] & 0xFF) << 8) | (udi[0] & 0xFF);
+        int unnamed = (vpr >> 28) & 0xf;
+        int vendorID = (vpr >> 12) & 0xffff;
+        int productID = (vpr >> 6) & 0x3f;
+        int productRevision = vpr & 0x3f;
+        int serial = (udi[7] << 24) | ((udi[6] & 0xFF) << 16) | ((udi[5] & 0xFF) << 8) | (udi[4] & 0xFF);
+        return new UDI(vpr,unnamed,vendorID,productID,productRevision,serial);
     }
 
-    public static byte[] getData(FwCmd command, FwCmd response) throws Exception {
+    private static byte[] getData(FwCmd command, FwCmd response) throws Exception {
         byte[] tx_byte = intArrayToByteArray(proto.newFrameBuf(command, ID));
         connHandler.getConn().writeBytes(tx_byte,tx_byte.length);
         return proto.readFrame(response, 2, connHandler.getConn());
@@ -171,22 +183,6 @@ public class TkeyClient {
 
     private static byte[] readFile(String fileName) throws IOException {
         return java.nio.file.Files.readAllBytes(new File(fileName).toPath());
-    }
-
-    public static byte[] intArrayToByteArray(int[] intArray) {
-        byte[] arr = new byte[intArray.length];
-        for(int i = 0; i<intArray.length; i++){
-            arr[i] = (byte) intArray[i];
-        }
-        return arr;
-    }
-
-    public static int[] byteArrayToIntArray(byte[] byteArray) {
-        int[] arr = new int[byteArray.length];
-        for(int i = 0; i<byteArray.length; i++){
-            arr[i] = byteArray[i];
-        }
-        return arr;
     }
 
     public static void connect() throws Exception {
@@ -206,7 +202,7 @@ public class TkeyClient {
         connHandler.setSpeed(speed);
     }
 
-    protected static void setCOMPort(String port) {
+    public static void setCOMPort(String port) {
         connHandler.setConn(port);
     }
 

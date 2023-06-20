@@ -99,7 +99,7 @@ public class proto {
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
         try{
-            if(expectedResp.getName().equals("rspGetNameVersion")) readForName(con, rx);
+            if(expectedResp.getName().equals("rspGetNameVersion") || expectedResp.getName().equals("rspGetUDI") ) readForName(con, rx);
 
             else readForApp(con, rx, eRespCode);
 
