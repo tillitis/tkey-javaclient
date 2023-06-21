@@ -28,8 +28,6 @@ Note: If you simply wish to get the TKey name or UDI, call getNameVersion() and/
   
 ## To Do
 
-a. Minor code cleanup. Particularly in regards to unnecessary code. 
+a. Continuous code cleanup. Particularly in regards to unnecessary code. 
 
-b. Documentation.
-
-c. Implement the Blake2s & USS parts of the code.
+b. Implement the Blake2s & USS parts of the code.
