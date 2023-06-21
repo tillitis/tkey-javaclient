@@ -3,15 +3,15 @@ package com.knek;
 import com.fazecast.jSerialComm.SerialPort;
 
 public class proto {
-    private final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen.CmdLen1);
-    private final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen.CmdLen32);
-    private final FwCmd cmdLoadApp = new FwCmd(0x03, "cmdLoadApp", CmdLen.CmdLen128);
-    private final FwCmd rspLoadApp = new FwCmd(0x04, "rspLoadApp", CmdLen.CmdLen4);
-    private final FwCmd cmdLoadAppData = new FwCmd(0x05, "cmdLoadAppData", CmdLen.CmdLen128);
-    private final FwCmd rspLoadAppData = new FwCmd(0x06, "rspLoadAppData", CmdLen.CmdLen4);
-    private final FwCmd rspLoadAppDataReady = new FwCmd(0x07, "rspLoadAppDataReady", CmdLen.CmdLen128);
-    private final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen.CmdLen1);
-    private final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen.CmdLen32);
+    private final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen.CmdLen1,(byte) 0);
+    private final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen.CmdLen32,(byte) 0);
+    private final FwCmd cmdLoadApp = new FwCmd(0x03, "cmdLoadApp", CmdLen.CmdLen128,(byte) 0);
+    private final FwCmd rspLoadApp = new FwCmd(0x04, "rspLoadApp", CmdLen.CmdLen4,(byte) 0);
+    private final FwCmd cmdLoadAppData = new FwCmd(0x05, "cmdLoadAppData", CmdLen.CmdLen128,(byte) 0);
+    private final FwCmd rspLoadAppData = new FwCmd(0x06, "rspLoadAppData", CmdLen.CmdLen4,(byte) 0);
+    private final FwCmd rspLoadAppDataReady = new FwCmd(0x07, "rspLoadAppDataReady", CmdLen.CmdLen128,(byte) 0);
+    private final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen.CmdLen1,(byte) 0);
+    private final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen.CmdLen32,(byte) 0);
 
     private FramingHdr parseFrame(int b) throws Exception {
         if ((b & 0b1000_0000) != 0) {
@@ -28,15 +28,15 @@ public class proto {
     }
 
     protected int[] newFrameBuf(FwCmd cmd, int id) throws Exception{
-        CmdLen cmdlen = cmd.getCmdLen();
+        CmdLen cmdlen = cmd.cmdLen();
 
         validate(id, 0, 3, "Frame ID needs to be between 1..3");
-        validate(cmd.getEndpoint(), 0, 3, "Endpoint must be 0..3");
+        validate(cmd.endpoint(), 0, 3, "Endpoint must be 0..3");
         validate(cmdlen.getByteVal(), 0, 3, "cmdLen must be 0..3");
 
         int[] tx = new int[cmdlen.getBytelen()+1];
-        tx[0] = ((id << 5) | (cmd.getEndpoint() << 3) | cmdlen.getByteVal());
-        tx[1] = cmd.getCode();
+        tx[0] = ((id << 5) | (cmd.endpoint() << 3) | cmdlen.getByteVal());
+        tx[1] = cmd.code();
         return tx;
     }
 
@@ -65,10 +65,10 @@ public class proto {
     }
 
     protected byte[] readFrame(FwCmd expectedResp, int expectedID, SerialPort con) throws Exception {
-        byte eEndpoint = expectedResp.getEndpoint();
+        byte eEndpoint = expectedResp.endpoint();
         validate(expectedID, 0, 3, "Frame ID needs to be between 1..3");
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
-        validate(expectedResp.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
+        validate(expectedResp.cmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
 
         byte[] rxHdr = new byte[1];
         int n;
@@ -91,16 +91,16 @@ public class proto {
             con.readBytes(rest,con.bytesAvailable());
             throw new Exception("Response status not OK");
         }
-        if(hdr.getCmdLen() != expectedResp.getCmdLen()) throw new Exception("Expected cmdlen " + expectedResp.getCmdLen () + " , got" + hdr.getCmdLen());
+        if(hdr.getCmdLen() != expectedResp.cmdLen()) throw new Exception("Expected cmdlen " + expectedResp.cmdLen() + " , got" + hdr.getCmdLen());
 
         validate(hdr.getEndpoint(), eEndpoint, eEndpoint, "Msg not meant for us, dest: " + hdr.getEndpoint());
         validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
 
-        byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())];
+        byte[] rx = new byte[1+(expectedResp.cmdLen().getBytelen())];
         rx[0] = rxHdr[0];
-        int eRespCode = expectedResp.getCode();
+        int eRespCode = expectedResp.code();
         try{
-            if(expectedResp.getName().equals("rspGetNameVersion") || expectedResp.getName().equals("rspGetUDI") ) con.readBytes(rx,rx.length);
+            if(expectedResp.name().equals("rspGetNameVersion") || expectedResp.name().equals("rspGetUDI") ) con.readBytes(rx,rx.length);
 
             else readForApp(con, rx, eRespCode);
 

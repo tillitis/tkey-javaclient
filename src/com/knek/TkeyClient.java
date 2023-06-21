@@ -54,7 +54,7 @@ public class TkeyClient {
         for(int nsent; offset < binLen; offset+= nsent){
             Tuple tup;
             try{
-                if(binLen-offset <= proto.getCmdLoadAppData().getCmdLen().getBytelen()-1){
+                if(binLen-offset <= proto.getCmdLoadAppData().cmdLen().getBytelen()-1){
                     tup = loadAppData((Arrays.copyOfRange(bin, offset, bin.length)),true);
                     deviceDigest = tup.getIntArray();
                     nsent = tup.getIntValue();
@@ -110,7 +110,7 @@ public class TkeyClient {
     private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
         int[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), ID);
 
-        int[] payload = new int[proto.getCmdLoadAppData().getCmdLen().getBytelen()-1];
+        int[] payload = new int[proto.getCmdLoadAppData().cmdLen().getBytelen()-1];
         int copied = Math.min(contentByte.length, payload.length);
         System.arraycopy(byteArrayToIntArray(contentByte), 0, payload, 0, copied);
 
