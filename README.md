@@ -17,8 +17,9 @@ Note: If you simply wish to get the TKey name or UDI, call getNameVersion() and/
 ### 2. Using this library with TKeyJGUI
 
 1. Clone the TKeyJGUI found at: https://github.com/iknek/TKeyJGUI
-2. Add the jSerialComm library and this library as local libraries.
-3. Start the GUI and load apps/get Tkey information through it.
+2. Clone this library and run the command ```.\gradlew build``` to build the jar file. Copy it from tkeyclient\build\libs.
+3. Add the jSerialComm library and this library as local libraries.
+4. Start the GUI and load apps/get Tkey information through it.
 
 ## Good To Know
 
