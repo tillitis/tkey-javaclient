@@ -3,6 +3,9 @@ package com.knek;
 import com.fazecast.jSerialComm.SerialPort;
 
 public class proto {
+    /**
+     * Pre-defined list of commands and responses used in TKey communication.
+     */
     private final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen.CmdLen1,(byte) 0);
     private final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen.CmdLen32,(byte) 0);
     private final FwCmd cmdLoadApp = new FwCmd(0x03, "cmdLoadApp", CmdLen.CmdLen128,(byte) 0);
@@ -13,6 +16,9 @@ public class proto {
     private final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen.CmdLen1,(byte) 0);
     private final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen.CmdLen32,(byte) 0);
 
+    /**
+     * Parses Framing HDR from the passed in int (retrieved from reading 1 byte from TKey).
+     */
     private FramingHdr parseFrame(int b) throws Exception {
         if ((b & 0b1000_0000) != 0) {
             throw new Exception("Reserved bit #7 is not zero");
@@ -27,6 +33,14 @@ public class proto {
         return framingHdr;
     }
 
+    /**
+     * NewFrameBuf allocates a buffer with the appropriate size for the
+     * command in cmd, including the framing protocol header byte. The cmd
+     * parameter is used to get the endpoint and command length, which
+     * together with id parameter are encoded as the header byte. The
+     * header byte is placed in the first byte in the returned buffer. The
+     * command code from cmd is placed in the buffer's second byte.
+     */
     protected int[] newFrameBuf(FwCmd cmd, int id) throws Exception{
         CmdLen cmdlen = cmd.cmdLen();
 
@@ -41,21 +55,21 @@ public class proto {
     }
 
     /**
-     * TODO method doesn't really do anything, seeing as dumped data isn't returned.
+     * dump(string, int[]) hexdumps data in d with an explaining string s first. It
+     * expects d to contain the whole frame as sent on the wire, with the
+     * framing protocol header in the first byte.
      */
     protected void dump(String s, int[] d) throws Exception {
         if(d == null || d.length == 0){
             throw new Exception("No data!");
         }
-        /*
-        try{
-            FramingHdr framingHdr = parseFrame(d[0]);
-        }catch(Exception e){
-            throw new Exception(s + " parseframe error: " + e);
-        }*/
-        //System.out.println("Hexdump translation to be done...");
+        FramingHdr framingHdr = parseFrame(d[0]);
+        System.out.println(s + " frame len: " + 1+framingHdr.getCmdLen().getBytelen() + " bytes)");
     }
 
+    /**
+     * Writes an array to the TKey, using the specified SerialPort.
+     */
     protected void write(byte[] d, SerialPort con) throws Exception {
         try{
             con.writeBytes(d, d.length);
@@ -64,6 +78,16 @@ public class proto {
         }
     }
 
+    /**
+     * ReadFrame reads a response in the framing protocol. The header byte
+     * is first parsed. If the header has response status Not OK,
+     * ErrResponseStatusNotOK is returned. Header command length and
+     * endpoint are then checked against the expectedResp parameter,
+     * header ID is checked against expectedID. The response code (first
+     * byte after header) is also checked against the code in
+     * expectedResp. It returns the whole frame read, and the parsed header
+     * byte if successful.
+     */
     protected byte[] readFrame(FwCmd expectedResp, int expectedID, SerialPort con) throws Exception {
         byte eEndpoint = expectedResp.endpoint();
         validate(expectedID, 0, 3, "Frame ID needs to be between 1..3");
@@ -114,6 +138,9 @@ public class proto {
         return rx;
     }
 
+    /**
+     * This method just handles the TKeys response after app data is written to it.
+     */
     private byte[] readForApp(SerialPort con, byte[] rx, int eRespCode){
         byte[] newData = new byte[con.bytesAvailable()];
         con.readBytes(newData, newData.length);
@@ -126,6 +153,9 @@ public class proto {
         return rx;
     }
 
+    /**
+     * Helper method for validating values.
+     */
     private void validate(int value, int min, int max, String errorMessage) throws Exception {
         if (value < min || value > max) throw new Exception(errorMessage);
     }

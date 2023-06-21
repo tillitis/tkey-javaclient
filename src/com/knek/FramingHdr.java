@@ -1,7 +1,6 @@
 package com.knek;
 
 public class FramingHdr {
-
     private final int ID;
     private final int endpoint;
     private final CmdLen cmdLen;

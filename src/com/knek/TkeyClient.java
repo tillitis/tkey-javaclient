@@ -1,14 +1,9 @@
 package com.knek;
 
-import jdk.jfr.Unsigned;
-
 import java.io.*;
 import java.nio.*;
 import java.util.*;
-
 import static com.knek.ArrayConverter.*;
-
-
 public class TkeyClient {
     private static final proto proto = new proto();
     private static SerialConnHandler connHandler;
@@ -25,10 +20,14 @@ public class TkeyClient {
         loadAppFromFile("app.bin");
     }
 
+    /**
+     * Prevents program from crashing if app is loaded after UDI is retrieved.
+     */
     public static void clearIOFull() throws InterruptedException {
         Thread.sleep(200);
         connHandler.flush();
     }
+
     public static void loadAppFromFile(String fileName) throws Exception {
         byte[] content = readFile(fileName);
         LoadApp(content);
@@ -81,6 +80,9 @@ public class TkeyClient {
         System.out.println("Same digests!");*/
     }
 
+    /**
+     * loadApp() sets the size and USS of the app to be loaded into the TKey.
+     */
     private static void loadApp(int size, byte[] secretPhrase) throws Exception {
         int[] tx = proto.newFrameBuf(proto.getCmdLoadApp(),ID);
         tx[2] = size;
@@ -107,6 +109,9 @@ public class TkeyClient {
         }
     }
 
+    /**
+     * loadAppData() loads a chunk of the raw app binary into the TKey.
+     */
     private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
         int[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), ID);
 
@@ -146,11 +151,18 @@ public class TkeyClient {
         return new Tuple(new int[32], copied);
     }
 
+    /**
+     * getNameVersion gets the name and version from the TKey firmware
+     */
     public static String getNameVersion() throws Exception {
         byte[] data = getData(proto.getCmdGetNameVersion(), proto.getRspGetNameVersion());
         return unpackName(data);
     }
 
+    /**
+     * Unpacks name and prints it to the console.
+     * @return the concated string, which can be used elsewhere.
+     */
     private static String unpackName(byte[] raw) {
         String name0 = new String(raw, 1, 4);
         String name1 = new String(raw, 5, 4);
@@ -160,22 +172,36 @@ public class TkeyClient {
         return concated;
     }
 
+    /**
+     * getUDI gets the UDI (Unique Device ID) from the TKey firmware, and returns
+     * a UDI object.
+     */
     public static UDI getUDI() throws Exception {
         byte[] data = getData(proto.getCmdGetUDI(), proto.getRspGetUDI());
         return unpackUDI(data);
     }
 
+    /**
+     * unpackUDI unpacks the array of bytes, creating a UDI object with all relevant fields,
+     * in addition to returning the entire array for use if needed.
+     */
     private static UDI unpackUDI(byte[] byteArray){
         short[] udi = Arrays.copyOfRange(bytesToUnsignedBytes(byteArray),2,10);
+
         int vpr = (udi[3] << 24) | ((udi[2] & 0xFF) << 16) | ((udi[1] & 0xFF) << 8) | (udi[0] & 0xFF);
         int unnamed = (vpr >> 28) & 0xf;
         int vendorID = (vpr >> 12) & 0xffff;
         int productID = (vpr >> 6) & 0x3f;
         int productRevision = vpr & 0x3f;
         int serial = (udi[7] << 24) | ((udi[6] & 0xFF) << 16) | ((udi[5] & 0xFF) << 8) | (udi[4] & 0xFF);
-        return new UDI(vpr,unnamed,vendorID,productID,productRevision,serial);
+
+        return new UDI(vpr,unnamed,vendorID,productID,productRevision,serial,udi);
     }
 
+    /**
+     * getData is used in both getNameVersion and getUDI to send instructions and receive
+     * replies + data from the TKey.
+     */
     private static byte[] getData(FwCmd command, FwCmd response) throws Exception {
         byte[] tx_byte = intArrayToByteArray(proto.newFrameBuf(command, ID));
         connHandler.getConn().writeBytes(tx_byte,tx_byte.length);
@@ -186,8 +212,19 @@ public class TkeyClient {
         return java.nio.file.Files.readAllBytes(new File(fileName).toPath());
     }
 
+    /**
+     * Establishes a connection to the TKey selecting a com port automatically.
+     */
     public static void connect() throws Exception {
         connHandler = new SerialConnHandler();
+        connHandler.connect();
+    }
+
+    /**
+     * Establishes a connection to the TKey on the specified port (string name).
+     */
+    public static void connect(String comport) throws Exception {
+        connHandler = new SerialConnHandler(comport);
         connHandler.connect();
     }
 

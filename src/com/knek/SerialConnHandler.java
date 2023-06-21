@@ -3,7 +3,6 @@ package com.knek;
 import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortDataListener;
 import com.fazecast.jSerialComm.SerialPortEvent;
-
 import static com.fazecast.jSerialComm.SerialPort.*;
 
 public class SerialConnHandler {
