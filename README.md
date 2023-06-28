@@ -24,7 +24,7 @@ Note: If you simply wish to get the TKey name or UDI, call getNameVersion() and/
 ## Good To Know
 
 - Serial USB communication is achieved through the use of the external library [jSerialComm](https://github.com/Fazecast/jSerialComm). This library jar is already placed in the root of this library folder.
-- Due to Gradle lacking support for JDK20, JDK19 must be used.
+- Due to Gradle lacking support for JDK20, JDK19 (or lower, 17 has been tested) must be used.
   
 ## To Do
 
