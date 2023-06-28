@@ -1,9 +1,11 @@
-package com.knek;
+package com.iknek;
+
+import org.bouncycastle.crypto.digests.Blake2sDigest;
 
 import java.io.*;
 import java.nio.*;
 import java.util.*;
-import static com.knek.ArrayConverter.*;
+import static com.iknek.ArrayConverter.*;
 public class TkeyClient {
     private static final proto proto = new proto();
     private static SerialConnHandler connHandler;
@@ -13,28 +15,16 @@ public class TkeyClient {
         getNameVersion();
 
         UDI udi = getUDI();
-        System.out.print(udi.productID());
+        System.out.print(udi.getProductID());
 
-        clearIOFull(); //Required only if app is loaded after getting UDI.
+        //clearIOFull(); //Required only if app is loaded after getting UDI.
 
         loadAppFromFile("app.bin");
-    }
-
-    /**
-     * Prevents program from crashing if app is loaded after UDI is retrieved.
-     */
-    public static void clearIOFull() throws InterruptedException {
-        Thread.sleep(200);
-        connHandler.flush();
+        close();
     }
 
     public static void loadAppFromFile(String fileName) throws Exception {
-        byte[] content = readFile(fileName);
-        LoadApp(content);
-    }
-
-    public static boolean getHasCon(){
-        return connHandler.getHasCon();
+        LoadApp(readFile(fileName));
     }
 
     private static void LoadApp(byte[] bin) throws Exception {
@@ -53,7 +43,7 @@ public class TkeyClient {
         for(int nsent; offset < binLen; offset+= nsent){
             Tuple tup;
             try{
-                if(binLen-offset <= proto.getCmdLoadAppData().cmdLen().getBytelen()-1){
+                if(binLen-offset <= proto.getCmdLoadAppData().getCmdLen().getBytelen()-1){
                     tup = loadAppData((Arrays.copyOfRange(bin, offset, bin.length)),true);
                     deviceDigest = tup.getIntArray();
                     nsent = tup.getIntValue();
@@ -67,17 +57,27 @@ public class TkeyClient {
         }
         if(offset > binLen) throw new Exception("Transmitted more than expected");
 
-        //byte[] digest = new byte[32];
-        //Blake2s256 blake2s = new Blake2s256();
-        //digest = blake2s.digest(bin);
-        /*Blake2s blake2s = new Blake2s(digest.length);
-        digest = blake2s.digest(bin);
+        byte[] digest = hash(bin);
+
+        /*
+         * This will always return an error. Device digest array = 0s only.
+         */
         if (!Arrays.equals(intArrayToByteArray(deviceDigest), digest)) {
             System.out.println(Arrays.toString(deviceDigest));
             System.out.println(Arrays.toString(digest));
-            throw new Exception("Different digests");
+            System.out.println("Different digests. WIP");
         }
-        System.out.println("Same digests!");*/
+        else{
+            System.out.println("Same digests!");
+        }
+    }
+
+    public static byte[] hash(byte[] bytes) {
+        Blake2sDigest digest = new Blake2sDigest(256);
+        digest.update(bytes, 0, bytes.length);
+        byte[] hash = new byte[digest.getDigestSize()];
+        digest.doFinal(hash, 0);
+        return hash;
     }
 
     /**
@@ -107,6 +107,10 @@ public class TkeyClient {
         }catch(Exception e){
             throw new Exception(e);
         }
+        byte[] rx = proto.readFrame(proto.getRspLoadApp(),2,connHandler.getConn());
+        if(rx[2] != 0){
+            System.out.println("LoadApp Not OK");
+        }
     }
 
     /**
@@ -115,7 +119,7 @@ public class TkeyClient {
     private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
         int[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), ID);
 
-        int[] payload = new int[proto.getCmdLoadAppData().cmdLen().getBytelen()-1];
+        int[] payload = new int[proto.getCmdLoadAppData().getCmdLen().getBytelen()-1];
         int copied = Math.min(contentByte.length, payload.length);
         System.arraycopy(byteArrayToIntArray(contentByte), 0, payload, 0, copied);
 
@@ -208,6 +212,30 @@ public class TkeyClient {
         return proto.readFrame(response, 2, connHandler.getConn());
     }
 
+    /**
+     * Method that can be used to send and receive frames from a TKey.
+     */
+    public static byte[] frameCom(FwCmd command, FwCmd eResp, int id, int eId, int[] data) throws Exception {
+        int[] tx = proto.newFrameBuf(command, id);
+        int[] payload = new int[command.getCmdLen().getBytelen()-1];
+        int copied = Math.min(data.length, payload.length);
+        System.arraycopy(data, 0, payload, 0, copied);
+
+        if (copied < payload.length) {
+            int[] padding = new int[payload.length - copied];
+            System.arraycopy(padding, 0, payload, copied, padding.length-1); //this line does nothing.
+        }
+        System.arraycopy(payload, 0, tx, 2, payload.length);
+        proto.write(intArrayToByteArray(tx), connHandler.getConn());
+
+        return proto.readFrame(eResp, eId, connHandler.getConn());
+    }
+
+    public static FwCmd[] getCommands(){
+        return proto.getAllCommands();
+    }
+
+
     private static byte[] readFile(String fileName) throws IOException {
         return java.nio.file.Files.readAllBytes(new File(fileName).toPath());
     }
@@ -242,5 +270,17 @@ public class TkeyClient {
 
     public static void setCOMPort(String port) {
         connHandler.setConn(port);
+    }
+
+    /**
+     * Prevents program from crashing if app is loaded after UDI is retrieved.
+     */
+    public static void clearIOFull() throws InterruptedException {
+        Thread.sleep(200);
+        connHandler.flush();
+    }
+
+    public static boolean getHasCon(){
+        return connHandler.getHasCon();
     }
 }

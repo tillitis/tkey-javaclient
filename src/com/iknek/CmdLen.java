@@ -1,4 +1,4 @@
-package com.knek;
+package com.iknek;
 
 enum CmdLen {
     CmdLen1(1, 0),

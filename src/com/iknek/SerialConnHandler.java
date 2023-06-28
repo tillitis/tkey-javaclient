@@ -1,4 +1,4 @@
-package com.knek;
+package com.iknek;
 
 import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortDataListener;
