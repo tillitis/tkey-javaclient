@@ -15,11 +15,11 @@ public class TkeyClient {
         port = connHandler.getConn();
         System.out.println(getNameVersion());
         UDI udi = getUDI();
-        System.out.print(udi.getProductID() + "\n");
-
+        System.out.print("TKey UDI: 0x0" + Integer.toHexString(udi.getVendorID()) + "0" + Integer.toHexString(udi.getUdi()[0]) + "00000" + Integer.toHexString(udi.getSerial()) + "\n");
+        System.out.print("Vendor ID: " + Integer.toHexString(udi.getVendorID()) + " Product ID: " + udi.getProductID() + " Product Rev: " + udi.getProductRevision() + "\n");
         clearIOFull(); //Required if app is loaded after getting UDI.
-
-        loadAppFromFile("blink.bin");
+        byte[] byteArray = new byte[] {1, 2, 3, 4, 5, 6};
+        loadAppFromFile("blink.bin",byteArray);
         close();
     }
 
