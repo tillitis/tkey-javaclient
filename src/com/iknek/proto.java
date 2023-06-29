@@ -39,16 +39,16 @@ public class proto {
      * header byte is placed in the first byte in the returned buffer. The
      * command code from cmd is placed in the buffer's second byte.
      */
-    protected int[] newFrameBuf(FwCmd cmd, int id) throws Exception{
+    protected byte[] newFrameBuf(FwCmd cmd, int id) throws Exception{
         CmdLen cmdlen = cmd.getCmdLen();
 
         validate(id, 0, 3, "Frame ID needs to be between 1..3");
         validate(cmd.getEndpoint(), 0, 3, "Endpoint must be 0..3");
         validate(cmdlen.getByteVal(), 0, 3, "cmdLen must be 0..3");
 
-        int[] tx = new int[cmdlen.getBytelen()+1];
-        tx[0] = ((id << 5) | (cmd.getEndpoint() << 3) | cmdlen.getByteVal());
-        tx[1] = cmd.getCode();
+        byte[] tx = new byte[cmdlen.getBytelen()+1];
+        tx[0] = (byte) ((id << 5) | (cmd.getEndpoint() << 3) | cmdlen.getByteVal());
+        tx[1] = (byte) cmd.getCode();
         return tx;
     }
 
@@ -57,7 +57,7 @@ public class proto {
      * expects d to contain the whole frame as sent on the wire, with the
      * framing protocol header in the first byte.
      */
-    protected void dump(String s, int[] d) throws Exception {
+    protected void dump(String s, byte[] d) throws Exception {
         if(d == null || d.length == 0){
             throw new Exception("No data!");
         }
@@ -122,31 +122,12 @@ public class proto {
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
         try{
-            if(expectedResp.getName().equals("rspGetNameVersion") || expectedResp.getName().equals("rspGetUDI") ) con.readBytes(rx,rx.length);
-
-            else readForApp(con, rx, eRespCode);
-
+            con.readBytes(rx,rx.length);
         } catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
-        if(rx[1] != eRespCode){
-            System.out.println("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
-            System.out.println("If this happens more than once during app loading, check device app and restart is recommended!");
-        }
-        return rx;
-    }
-
-    /**
-     * This method just handles the TKeys response after app data is written to it.
-     */
-    private byte[] readForApp(SerialPort con, byte[] rx, int eRespCode){
-        byte[] newData = new byte[con.bytesAvailable()];
-        con.readBytes(newData, newData.length);
-        for (byte newDatum : newData) {
-            if (newDatum == eRespCode) {
-                rx[1] = newDatum;
-                break;
-            }
+        if(rx[0] != eRespCode){
+            throw new Exception("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
         }
         return rx;
     }

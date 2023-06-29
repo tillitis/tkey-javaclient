@@ -1,7 +1,5 @@
 package com.iknek;
 
-import java.util.Objects;
-
 public final class UDI {
     private final int vpr;
     private final int unnamed;

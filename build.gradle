@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'org.iknek'
-version '1.2-alpha'
+version '1.3-alpha'
 
 repositories {
     mavenCentral()

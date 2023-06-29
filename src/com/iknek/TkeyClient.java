@@ -5,19 +5,17 @@ import org.bouncycastle.crypto.digests.Blake2sDigest;
 import java.io.*;
 import java.nio.*;
 import java.util.*;
-import static com.iknek.ArrayConverter.*;
 public class TkeyClient {
     private static final proto proto = new proto();
     private static SerialConnHandler connHandler;
     private static final int ID = 2;
     public static void main(String[] args) throws Exception {
         connect();
-        getNameVersion();
-
+        System.out.println(getNameVersion());
         UDI udi = getUDI();
-        System.out.print(udi.getProductID());
+        System.out.print(udi.getProductID() + "\n");
 
-        //clearIOFull(); //Required only if app is loaded after getting UDI.
+        clearIOFull(); //Required if app is loaded after getting UDI.
 
         loadAppFromFile("app.bin");
         close();
@@ -38,19 +36,17 @@ public class TkeyClient {
         loadApp(binLen, uss);
 
         int offset = 0;
-        int[] deviceDigest = new int[32];
+        byte[] deviceDigest = new byte[32];
 
         for(int nsent; offset < binLen; offset+= nsent){
             Tuple tup;
             try{
                 if(binLen-offset <= proto.getCmdLoadAppData().getCmdLen().getBytelen()-1){
                     tup = loadAppData((Arrays.copyOfRange(bin, offset, bin.length)),true);
-                    deviceDigest = tup.getIntArray();
-                    nsent = tup.getIntValue();
-                } else {
-                    tup = loadAppData(Arrays.copyOfRange(bin, offset, bin.length),false);
-                    nsent = tup.getIntValue();
+                    deviceDigest = tup.getByteArray();
                 }
+                else tup = loadAppData(Arrays.copyOfRange(bin, offset, bin.length),false);
+                nsent = tup.getIntValue();
             }catch(Exception e){
                 throw new Exception("loadAppData error: " + e);
             }
@@ -60,9 +56,9 @@ public class TkeyClient {
         byte[] digest = hash(bin);
 
         /*
-         * This will always return an error. Device digest array = 0s only.
+         * This will always return an error, until fixed.
          */
-        if (!Arrays.equals(intArrayToByteArray(deviceDigest), digest)) {
+        if (!Arrays.equals(deviceDigest, digest)) {
             System.out.println(Arrays.toString(deviceDigest));
             System.out.println(Arrays.toString(digest));
             System.out.println("Different digests. WIP");
@@ -84,11 +80,11 @@ public class TkeyClient {
      * loadApp() sets the size and USS of the app to be loaded into the TKey.
      */
     private static void loadApp(int size, byte[] secretPhrase) throws Exception {
-        int[] tx = proto.newFrameBuf(proto.getCmdLoadApp(),ID);
-        tx[2] = size;
-        tx[3] = size >> 8;
-        tx[4] = size >> 16;
-        tx[5] = size >> 24;
+        byte[] tx = proto.newFrameBuf(proto.getCmdLoadApp(),ID);
+        tx[2] = (byte) size;
+        tx[3] = (byte) (size >> 8);
+        tx[4] = (byte) (size >> 16);
+        tx[5] = (byte) (size >> 24);
         tx[6] = 0;
         /*
         if(secretPhrase.length == 0){
@@ -101,9 +97,8 @@ public class TkeyClient {
         }catch(Exception e){
             throw new Exception(e);
         }
-        byte[] tx_arr = intArrayToByteArray(tx);
         try{
-            connHandler.getConn().writeBytes(tx_arr,tx_arr.length);
+            connHandler.getConn().writeBytes(tx,tx.length);
         }catch(Exception e){
             throw new Exception(e);
         }
@@ -117,14 +112,14 @@ public class TkeyClient {
      * loadAppData() loads a chunk of the raw app binary into the TKey.
      */
     private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
-        int[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), ID);
+        byte[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), ID);
 
-        int[] payload = new int[proto.getCmdLoadAppData().getCmdLen().getBytelen()-1];
+        byte[] payload = new byte[proto.getCmdLoadAppData().getCmdLen().getBytelen()-1];
         int copied = Math.min(contentByte.length, payload.length);
-        System.arraycopy(byteArrayToIntArray(contentByte), 0, payload, 0, copied);
+        System.arraycopy(contentByte, 0, payload, 0, copied);
 
         if (copied < payload.length) {
-            int[] padding = new int[payload.length - copied];
+            byte[] padding = new byte[payload.length - copied];
             System.arraycopy(padding, 0, payload, copied, padding.length-1); //this line does nothing.
         }
         System.arraycopy(payload, 0, tx, 2, payload.length);
@@ -134,12 +129,11 @@ public class TkeyClient {
             throw new Exception(e);
         }
 
-        proto.write(intArrayToByteArray(tx), connHandler.getConn());
+        proto.write(tx, connHandler.getConn());
 
         FwCmd cmd;
-        if(last){
-            cmd = proto.getRspLoadAppDataReady();
-        } else cmd = proto.getRspLoadAppData();
+        if(last) cmd = proto.getRspLoadAppDataReady();
+        else     cmd = proto.getRspLoadAppData();
 
         byte[] rx;
         try {
@@ -148,11 +142,11 @@ public class TkeyClient {
             throw new Exception(e);
         }
         if(last){
-            int[] digest = new int[32];
-            System.arraycopy(byteArrayToIntArray(rx), 3, digest,0 ,32);
+            byte[] digest = new byte[32];
+            System.arraycopy(rx, 3, digest,0 ,32);
             return new Tuple(digest,copied);
         }
-        return new Tuple(new int[32], copied);
+        return new Tuple(new byte[32], copied);
     }
 
     /**
@@ -171,9 +165,7 @@ public class TkeyClient {
         String name0 = new String(raw, 1, 4);
         String name1 = new String(raw, 5, 4);
         long version = ByteBuffer.wrap(raw, 9, 4).order(ByteOrder.LITTLE_ENDIAN).getInt() & 0xffffffffL;
-        String concated = name0 + name1 + " " + version;
-        System.out.println("TKey Device name and version: " + concated);
-        return concated;
+        return name0 + name1 + " " + version;
     }
 
     /**
@@ -202,19 +194,27 @@ public class TkeyClient {
         return new UDI(vpr,unnamed,vendorID,productID,productRevision,serial,udi);
     }
 
+    static short[] bytesToUnsignedBytes(byte[] bytes) {
+        short[] unsignedBytes = new short[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            unsignedBytes[i] = (short) (bytes[i] & 0xFF);
+        }
+        return unsignedBytes;
+    }
+
     /**
      * getData is used in both getNameVersion and getUDI to send instructions and receive
      * replies + data from the TKey.
      */
     private static byte[] getData(FwCmd command, FwCmd response) throws Exception {
-        byte[] tx_byte = intArrayToByteArray(proto.newFrameBuf(command, ID));
+        byte[] tx_byte = proto.newFrameBuf(command, ID);
         connHandler.getConn().writeBytes(tx_byte,tx_byte.length);
         return proto.readFrame(response, 2, connHandler.getConn());
     }
 
     /**
      * Method that can be used to send and receive frames from a TKey.
-     */
+
     public static byte[] frameCom(FwCmd command, FwCmd eResp, int id, int eId, int[] data) throws Exception {
         int[] tx = proto.newFrameBuf(command, id);
         int[] payload = new int[command.getCmdLen().getBytelen()-1];
@@ -229,7 +229,7 @@ public class TkeyClient {
         proto.write(intArrayToByteArray(tx), connHandler.getConn());
 
         return proto.readFrame(eResp, eId, connHandler.getConn());
-    }
+    }*/
 
     public static FwCmd[] getCommands(){
         return proto.getAllCommands();
