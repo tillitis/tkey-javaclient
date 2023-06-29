@@ -1,28 +1,34 @@
 package com.iknek;
 
+import com.fazecast.jSerialComm.SerialPort;
 import org.bouncycastle.crypto.digests.Blake2sDigest;
-
 import java.io.*;
 import java.nio.*;
 import java.util.*;
 public class TkeyClient {
     private static final proto proto = new proto();
     private static SerialConnHandler connHandler;
+    private static SerialPort port;
     private static final int ID = 2;
     public static void main(String[] args) throws Exception {
         connect();
+        port = connHandler.getConn();
         System.out.println(getNameVersion());
         UDI udi = getUDI();
         System.out.print(udi.getProductID() + "\n");
 
         clearIOFull(); //Required if app is loaded after getting UDI.
 
-        loadAppFromFile("app.bin");
+        loadAppFromFile("blink.bin");
         close();
     }
 
     public static void loadAppFromFile(String fileName) throws Exception {
         LoadApp(readFile(fileName));
+    }
+
+    public static void loadAppFromFile(String fileName, byte[] uss) throws Exception {
+        LoadApp(readFile(fileName),uss);
     }
 
     private static void LoadApp(byte[] bin) throws Exception {
@@ -55,13 +61,13 @@ public class TkeyClient {
 
         byte[] digest = hash(bin);
 
-        /*
-         * This will always return an error, until fixed.
-         */
-        if (!Arrays.equals(deviceDigest, digest)) {
-            System.out.println(Arrays.toString(deviceDigest));
-            System.out.println(Arrays.toString(digest));
-            System.out.println("Different digests. WIP");
+        deviceDigest = Arrays.copyOfRange(deviceDigest,0,32);
+
+        System.out.println("Host Digest: " + Arrays.toString(bytesToUnsignedBytes(digest)));
+        System.out.println("Device Digest: " + Arrays.toString(bytesToUnsignedBytes(deviceDigest)));
+
+        if (!Arrays.equals(digest, deviceDigest)) {
+            throw new Exception("Different digests");
         }
         else{
             System.out.println("Same digests!");
@@ -85,24 +91,24 @@ public class TkeyClient {
         tx[3] = (byte) (size >> 8);
         tx[4] = (byte) (size >> 16);
         tx[5] = (byte) (size >> 24);
-        tx[6] = 0;
-        /*
+
         if(secretPhrase.length == 0){
+            tx[6] = 0;
         }else{
-            byte[] uss = null;
-        }*/
-        // TODO: Implement blake2s and USS
+            byte[] uss = hash(secretPhrase);
+            System.arraycopy(uss, 0, tx, 6, uss.length);
+        }
         try{
             proto.dump("LoadApp tx", tx);
         }catch(Exception e){
             throw new Exception(e);
         }
         try{
-            connHandler.getConn().writeBytes(tx,tx.length);
+            proto.write(tx, port);
         }catch(Exception e){
             throw new Exception(e);
         }
-        byte[] rx = proto.readFrame(proto.getRspLoadApp(),2,connHandler.getConn());
+        byte[] rx = proto.readFrame(proto.getRspLoadApp(),2,port);
         if(rx[2] != 0){
             System.out.println("LoadApp Not OK");
         }
@@ -129,7 +135,7 @@ public class TkeyClient {
             throw new Exception(e);
         }
 
-        proto.write(tx, connHandler.getConn());
+        proto.write(tx, port);
 
         FwCmd cmd;
         if(last) cmd = proto.getRspLoadAppDataReady();
@@ -137,13 +143,13 @@ public class TkeyClient {
 
         byte[] rx;
         try {
-            rx = proto.readFrame(cmd, ID, connHandler.getConn());
+            rx = proto.readFrame(cmd, ID, port);
         }catch (Exception e){
             throw new Exception(e);
         }
         if(last){
-            byte[] digest = new byte[32];
-            System.arraycopy(rx, 3, digest,0 ,32);
+            byte[] digest = new byte[128];
+            System.arraycopy(rx, 2, digest,0 ,32);
             return new Tuple(digest,copied);
         }
         return new Tuple(new byte[32], copied);
@@ -159,7 +165,7 @@ public class TkeyClient {
 
     /**
      * Unpacks name and prints it to the console.
-     * @return the concated string, which can be used elsewhere.
+     * @return the concated string.
      */
     private static String unpackName(byte[] raw) {
         String name0 = new String(raw, 1, 4);
@@ -169,8 +175,7 @@ public class TkeyClient {
     }
 
     /**
-     * getUDI gets the UDI (Unique Device ID) from the TKey firmware, and returns
-     * a UDI object.
+     * getUDI gets the UDI (Unique Device ID) from the TKey firmware, and returns a UDI object.
      */
     public static UDI getUDI() throws Exception {
         byte[] data = getData(proto.getCmdGetUDI(), proto.getRspGetUDI());
@@ -208,8 +213,8 @@ public class TkeyClient {
      */
     private static byte[] getData(FwCmd command, FwCmd response) throws Exception {
         byte[] tx_byte = proto.newFrameBuf(command, ID);
-        connHandler.getConn().writeBytes(tx_byte,tx_byte.length);
-        return proto.readFrame(response, 2, connHandler.getConn());
+        proto.write(tx_byte, port);
+        return proto.readFrame(response, 2, port);
     }
 
     /**
@@ -226,15 +231,14 @@ public class TkeyClient {
             System.arraycopy(padding, 0, payload, copied, padding.length-1); //this line does nothing.
         }
         System.arraycopy(payload, 0, tx, 2, payload.length);
-        proto.write(intArrayToByteArray(tx), connHandler.getConn());
+        proto.write(intArrayToByteArray(tx), port);
 
-        return proto.readFrame(eResp, eId, connHandler.getConn());
+        return proto.readFrame(eResp, eId, port);
     }*/
 
     public static FwCmd[] getCommands(){
         return proto.getAllCommands();
     }
-
 
     private static byte[] readFile(String fileName) throws IOException {
         return java.nio.file.Files.readAllBytes(new File(fileName).toPath());

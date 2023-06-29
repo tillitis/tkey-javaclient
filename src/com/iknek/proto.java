@@ -14,6 +14,7 @@ public class proto {
     private final FwCmd rspLoadAppDataReady = new FwCmd(0x07, "rspLoadAppDataReady", CmdLen.CmdLen128);
     private final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen.CmdLen1);
     private final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen.CmdLen32);
+
     /**
      * Parses Framing HDR from the passed in int (retrieved from reading 1 byte from TKey).
      */
@@ -122,6 +123,7 @@ public class proto {
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
         try{
+            Thread.sleep(10); //Required, otherwise entire readBuffer is not read
             con.readBytes(rx,rx.length);
         } catch(Exception e){
             throw new Exception("Read failed, error: " + e);
