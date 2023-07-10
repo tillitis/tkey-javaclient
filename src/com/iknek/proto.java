@@ -63,7 +63,7 @@ public class proto {
             throw new Exception("No data!");
         }
         FramingHdr framingHdr = parseFrame(d[0]);
-        System.out.println(s + " frame len: " + 1+framingHdr.getCmdLen().getBytelen() + " bytes");
+        System.out.println(s + " frame len: " + framingHdr.getCmdLen().getBytelen() + " bytes");
     }
 
     /**
@@ -97,6 +97,7 @@ public class proto {
         int n;
         try{
             n = con.readBytes(rxHdr,1);
+            System.out.println(rxHdr[0]);
         }catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }

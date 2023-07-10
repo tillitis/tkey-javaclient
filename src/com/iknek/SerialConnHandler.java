@@ -95,4 +95,12 @@ public class SerialConnHandler {
         }
     }
 
+    protected void setReadTimeout(int read, int write){
+        try{
+            conn.setComPortTimeouts(TIMEOUT_READ_BLOCKING,read,write);
+        }catch (Exception e){
+            System.out.println("Failed to set read timeout with err: " + e);
+        }
+    }
+
 }

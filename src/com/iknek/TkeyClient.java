@@ -17,9 +17,8 @@ public class TkeyClient {
         UDI udi = getUDI();
         System.out.print("TKey UDI: 0x0" + Integer.toHexString(udi.getVendorID()) + "0" + Integer.toHexString(udi.getUdi()[0]) + "00000" + Integer.toHexString(udi.getSerial()) + "\n");
         System.out.print("Vendor ID: " + Integer.toHexString(udi.getVendorID()) + " Product ID: " + udi.getProductID() + " Product Rev: " + udi.getProductRevision() + "\n");
-        clearIOFull(); //Required if app is loaded after getting UDI.
-        byte[] byteArray = new byte[] {1, 2, 3, 4, 5, 6};
-        loadAppFromFile("blink.bin",byteArray);
+        byte[] byteArray = new byte[] {1, 2, 3, 4, 5, 6}; //USS for testing. remove and prompt user.
+        loadAppFromFile("sign.bin",byteArray);
         close();
     }
 
@@ -134,9 +133,7 @@ public class TkeyClient {
         }catch (Exception e){
             throw new Exception(e);
         }
-
         proto.write(tx, port);
-
         FwCmd cmd;
         if(last) cmd = proto.getRspLoadAppDataReady();
         else     cmd = proto.getRspLoadAppData();
@@ -167,7 +164,7 @@ public class TkeyClient {
      * Unpacks name and prints it to the console.
      * @return the concated string.
      */
-    private static String unpackName(byte[] raw) {
+    static String unpackName(byte[] raw) {
         String name0 = new String(raw, 1, 4);
         String name1 = new String(raw, 5, 4);
         long version = ByteBuffer.wrap(raw, 9, 4).order(ByteOrder.LITTLE_ENDIAN).getInt() & 0xffffffffL;
@@ -217,29 +214,6 @@ public class TkeyClient {
         return proto.readFrame(response, 2, port);
     }
 
-    /**
-     * Method that can be used to send and receive frames from a TKey.
-
-    public static byte[] frameCom(FwCmd command, FwCmd eResp, int id, int eId, int[] data) throws Exception {
-        int[] tx = proto.newFrameBuf(command, id);
-        int[] payload = new int[command.getCmdLen().getBytelen()-1];
-        int copied = Math.min(data.length, payload.length);
-        System.arraycopy(data, 0, payload, 0, copied);
-
-        if (copied < payload.length) {
-            int[] padding = new int[payload.length - copied];
-            System.arraycopy(padding, 0, payload, copied, padding.length-1); //this line does nothing.
-        }
-        System.arraycopy(payload, 0, tx, 2, payload.length);
-        proto.write(intArrayToByteArray(tx), port);
-
-        return proto.readFrame(eResp, eId, port);
-    }*/
-
-    public static FwCmd[] getCommands(){
-        return proto.getAllCommands();
-    }
-
     private static byte[] readFile(String fileName) throws IOException {
         return java.nio.file.Files.readAllBytes(new File(fileName).toPath());
     }
@@ -279,9 +253,22 @@ public class TkeyClient {
     /**
      * Prevents program from crashing if app is loaded after UDI is retrieved.
      */
-    public static void clearIOFull() throws InterruptedException {
-        Thread.sleep(200);
+    public static void clearIOFull(){
         connHandler.flush();
+    }
+
+    private static final FwCmd cmdGetNameVersion  = new FwCmd(0x09, "cmdGetNameVersion", CmdLen.CmdLen1,(byte) 3);
+    private static final FwCmd rspGetNameVersion  = new FwCmd(0x0a, "rspGetNameVersion", CmdLen.CmdLen32,(byte) 3);
+
+    public static String getAppNameVersion() throws Exception {
+        clearIOFull();
+        byte[] tx = proto.newFrameBuf(cmdGetNameVersion,2);
+        proto.dump("get name tx", tx);
+        proto.write(tx,connHandler.getConn());
+        connHandler.setReadTimeout(1000,0);
+        byte[] rx = proto.readFrame(rspGetNameVersion,2, connHandler.getConn());
+        connHandler.setReadTimeout(0,0);
+        return TkeyClient.unpackName(rx);
     }
 
     public static boolean getHasCon(){
