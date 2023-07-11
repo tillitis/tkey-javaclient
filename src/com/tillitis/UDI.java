@@ -1,5 +1,9 @@
-package com.iknek;
+/*
+ * Copyright (C) 2022, 2023 - Tillitis AB
+ * SPDX-License-Identifier: GPL-2.0-only
+ */
 
+package com.tillitis;
 public final class UDI {
     private final int vpr;
     private final int unnamed;

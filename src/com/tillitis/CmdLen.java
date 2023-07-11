@@ -1,5 +1,9 @@
-package com.iknek;
+/*
+ * Copyright (C) 2022, 2023 - Tillitis AB
+ * SPDX-License-Identifier: GPL-2.0-only
+ */
 
+package com.tillitis;
 enum CmdLen {
     CmdLen1(1, 0),
     CmdLen4(4, 1),

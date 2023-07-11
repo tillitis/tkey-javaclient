@@ -1,5 +1,8 @@
-package com.iknek;
-
+/*
+ * Copyright (C) 2022, 2023 - Tillitis AB
+ * SPDX-License-Identifier: GPL-2.0-only
+ */
+package com.tillitis;
 import com.fazecast.jSerialComm.SerialPort;
 import org.bouncycastle.crypto.digests.Blake2sDigest;
 import java.io.*;
@@ -10,6 +13,13 @@ public class TkeyClient {
     private static SerialConnHandler connHandler;
     private static SerialPort port;
     private static final int ID = 2;
+
+    /**
+     * NOTE: This main method is intended only for use when debugging or running
+     * this code as a stand-alone program. It also serves as an example of how/which
+     * method should be called.
+     * When used as a library, remove it.
+     */
     public static void main(String[] args) throws Exception {
         connect();
         port = connHandler.getConn();
@@ -17,8 +27,10 @@ public class TkeyClient {
         UDI udi = getUDI();
         System.out.print("TKey UDI: 0x0" + Integer.toHexString(udi.getVendorID()) + "0" + Integer.toHexString(udi.getUdi()[0]) + "00000" + Integer.toHexString(udi.getSerial()) + "\n");
         System.out.print("Vendor ID: " + Integer.toHexString(udi.getVendorID()) + " Product ID: " + udi.getProductID() + " Product Rev: " + udi.getProductRevision() + "\n");
-        byte[] byteArray = new byte[] {1, 2, 3, 4, 5, 6}; //USS for testing. remove and prompt user.
-        loadAppFromFile("sign.bin",byteArray);
+        byte[] byteArray = new byte[] {1, 2, 3, 4, 5, 6}; //USS for testing. Remove and prompt user if using library.
+
+        //Replace with your app.bin file placed in the root of this project.
+        loadAppFromFile("NAME.bin",byteArray);
         close();
     }
 

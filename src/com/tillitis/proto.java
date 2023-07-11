@@ -1,4 +1,4 @@
-package com.iknek;
+package com.tillitis;
 import com.fazecast.jSerialComm.SerialPort;
 
 public class proto {

@@ -1,5 +1,9 @@
-package com.iknek;
+/*
+ * Copyright (C) 2022, 2023 - Tillitis AB
+ * SPDX-License-Identifier: GPL-2.0-only
+ */
 
+package com.tillitis;
 public class FramingHdr {
     private final int ID;
     private final int endpoint;
