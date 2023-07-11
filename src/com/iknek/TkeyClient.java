@@ -260,6 +260,9 @@ public class TkeyClient {
     private static final FwCmd cmdGetNameVersion  = new FwCmd(0x09, "cmdGetNameVersion", CmdLen.CmdLen1,(byte) 3);
     private static final FwCmd rspGetNameVersion  = new FwCmd(0x0a, "rspGetNameVersion", CmdLen.CmdLen32,(byte) 3);
 
+    /**
+     * Used for getting the name of an app after it's loaded to the device (ex. signer).
+     */
     public static String getAppNameVersion() throws Exception {
         clearIOFull();
         byte[] tx = proto.newFrameBuf(cmdGetNameVersion,2);

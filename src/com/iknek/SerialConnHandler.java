@@ -27,7 +27,10 @@ public class SerialConnHandler {
         return hasCon;
     }
 
-    void reconnect() throws Exception {
+    /**
+     * Currently not functioning. To be done.
+     */
+    void reconnect(){
         conn = SerialPort.getCommPorts()[0];
         conn.openPort();
         portListener();
