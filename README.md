@@ -54,8 +54,7 @@ There are two ways to send apps and communicate with a TKey using this library/p
 Note: If you simply wish to get the TKey name or UDI, call getNameVersion() and/or getUDI() respectively, and comment out the method for app loading.
 
 ### 2. As a library
-1. Clone this library and run the command ```.\gradlew build``` to build the jar file. Copy it from tkeyclient\build\libs to root of GUI program.
-2. Start the GUI and load apps/get TKey information through it.
+1. Clone this library and run the command ```.\gradlew build``` to build the jar file. Copy it from ```tkeyclient\build\libs```. 
 
 ## Good To Know
 - Due to Gradle lacking support for JDK20, JDK19 (or lower, 17 has been tested) must be used.
