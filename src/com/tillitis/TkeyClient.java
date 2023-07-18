@@ -22,7 +22,7 @@ public class TkeyClient {
      */
     public static void main(String[] args) throws Exception {
         connect();
-        port = connHandler.getConn();
+
         System.out.println(getNameVersion());
         UDI udi = getUDI();
         System.out.print("TKey UDI: 0x0" + Integer.toHexString(udi.getVendorID()) + "0" + Integer.toHexString(udi.getUdi()[0]) + "00000" + Integer.toHexString(udi.getSerial()) + "\n");
@@ -176,7 +176,7 @@ public class TkeyClient {
      * Unpacks name and prints it to the console.
      * @return the concated string.
      */
-    static String unpackName(byte[] raw) {
+    public static String unpackName(byte[] raw) {
         String name0 = new String(raw, 1, 4);
         String name1 = new String(raw, 5, 4);
         long version = ByteBuffer.wrap(raw, 9, 4).order(ByteOrder.LITTLE_ENDIAN).getInt() & 0xffffffffL;
@@ -233,21 +233,49 @@ public class TkeyClient {
     /**
      * Establishes a connection to the TKey selecting a com port automatically.
      */
-    public static void connect() throws Exception {
+    public static SerialConnHandler connect() throws Exception {
         connHandler = new SerialConnHandler();
         connHandler.connect();
+        port = connHandler.getConn();
+        return connHandler;
     }
+
+    /*
+     * The following methods are used as abstractions to avoid the need for class:Proto to be called directly.
+     */
+
+    public void setReadTimeout(int r, int w){
+        connHandler.setReadTimeout(r,w);
+    }
+
+    public void write(byte[] tx) throws Exception {
+        proto.write(tx,port);
+    }
+
+    public byte[] readFrame(FwCmd cmd, int id) throws Exception {
+        return proto.readFrame(cmd, id,port);
+    }
+
+    public void dump(String s, byte[] tx) throws Exception {
+        proto.dump(s, tx);
+    }
+
+    public byte[] newFrameBuf(FwCmd cmd,int id) throws Exception {
+        return proto.newFrameBuf(cmd,id);
+    }
+
+    /*
+     * The following methods are used for specific IO actions if default behavior needs to be changed.
+     */
 
     /**
      * Establishes a connection to the TKey on the specified port (string name).
      */
-    public static void connect(String comport) throws Exception {
+    public static SerialConnHandler connect(String comport) throws Exception {
         connHandler = new SerialConnHandler(comport);
         connHandler.connect();
-    }
-
-    public static void reconnect() throws Exception {
-        connHandler.reconnect();
+        port = connHandler.getConn();
+        return connHandler;
     }
 
     public static void close(){
@@ -263,27 +291,10 @@ public class TkeyClient {
     }
 
     /**
-     * Prevents program from crashing if app is loaded after UDI is retrieved.
+     * Prevents program from crashing in certain cases (for example if app is loaded after UDI is retrieved).
      */
     public static void clearIOFull(){
         connHandler.flush();
-    }
-
-    private static final FwCmd cmdGetNameVersion  = new FwCmd(0x09, "cmdGetNameVersion", CmdLen.CmdLen1,(byte) 3);
-    private static final FwCmd rspGetNameVersion  = new FwCmd(0x0a, "rspGetNameVersion", CmdLen.CmdLen32,(byte) 3);
-
-    /**
-     * Used for getting the name of an app after it's loaded to the device (ex. signer).
-     */
-    public static String getAppNameVersion() throws Exception {
-        clearIOFull();
-        byte[] tx = proto.newFrameBuf(cmdGetNameVersion,2);
-        proto.dump("get name tx", tx);
-        proto.write(tx,connHandler.getConn());
-        connHandler.setReadTimeout(1000,0);
-        byte[] rx = proto.readFrame(rspGetNameVersion,2, connHandler.getConn());
-        connHandler.setReadTimeout(0,0);
-        return TkeyClient.unpackName(rx);
     }
 
     public static boolean getHasCon(){

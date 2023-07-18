@@ -1,19 +1,20 @@
 package com.tillitis;
 import com.fazecast.jSerialComm.SerialPort;
+import static com.tillitis.CmdLen.*;
 
 public class proto {
     /**
      * Pre-defined list of commands and responses used in TKey communication.
      */
-    private static final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen.CmdLen1);
-    private final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen.CmdLen32);
-    private final FwCmd cmdLoadApp = new FwCmd(0x03, "cmdLoadApp", CmdLen.CmdLen128);
-    private final FwCmd rspLoadApp = new FwCmd(0x04, "rspLoadApp", CmdLen.CmdLen4);
-    private final FwCmd cmdLoadAppData = new FwCmd(0x05, "cmdLoadAppData", CmdLen.CmdLen128);
-    private final FwCmd rspLoadAppData = new FwCmd(0x06, "rspLoadAppData", CmdLen.CmdLen4);
-    private final FwCmd rspLoadAppDataReady = new FwCmd(0x07, "rspLoadAppDataReady", CmdLen.CmdLen128);
-    private final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen.CmdLen1);
-    private final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen.CmdLen32);
+    private static final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen1);
+    private final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen32);
+    private final FwCmd cmdLoadApp = new FwCmd(0x03, "cmdLoadApp", CmdLen128);
+    private final FwCmd rspLoadApp = new FwCmd(0x04, "rspLoadApp", CmdLen4);
+    private final FwCmd cmdLoadAppData = new FwCmd(0x05, "cmdLoadAppData", CmdLen128);
+    private final FwCmd rspLoadAppData = new FwCmd(0x06, "rspLoadAppData", CmdLen4);
+    private final FwCmd rspLoadAppDataReady = new FwCmd(0x07, "rspLoadAppDataReady", CmdLen128);
+    private final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen1);
+    private final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen32);
 
     /**
      * Parses Framing HDR from the passed in int (retrieved from reading 1 byte from TKey).
@@ -97,7 +98,6 @@ public class proto {
         int n;
         try{
             n = con.readBytes(rxHdr,1);
-            System.out.println(rxHdr[0]);
         }catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
@@ -136,24 +136,10 @@ public class proto {
     }
 
     /**
-     * Helper method for validating values.
+     * Helper method for validating that values are as expected/within a certain accepted range.
      */
     private void validate(int value, int min, int max, String errorMessage) throws Exception {
         if (value < min || value > max) throw new Exception(errorMessage);
-    }
-
-    FwCmd[] getAllCommands() {
-        return new FwCmd[]{
-                cmdGetNameVersion,
-                rspGetNameVersion,
-                cmdLoadApp,
-                rspLoadApp,
-                cmdLoadAppData,
-                rspLoadAppData,
-                rspLoadAppDataReady,
-                cmdGetUDI,
-                rspGetUDI
-        };
     }
 
     public FwCmd getCmdGetNameVersion() {
