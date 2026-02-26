@@ -1,4 +1,7 @@
 # Tkey-jClient
+
+*WARNING*: Unsupported and unmaintained.
+
 This is currently a somewhat messsy code repo which allows one to send apps, and recieve info, to/from a [Tillitis TKey](https://www.tillitis.se). In effect, this is a Java version of the [tkey-client Golang package](https://github.com/tillitis/tkeyclient). 
 
 ## Licenses and SPDX tags
